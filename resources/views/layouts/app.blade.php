@@ -13,6 +13,26 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+        :root {
+            --color-primary: {{ app_color('primary_color') }};
+            --color-secondary: {{ app_color('secondary_color') }};
+            --color-accent: {{ app_color('accent_color') }};
+            --color-background: {{ app_color('background_color') }};
+            --color-card: {{ app_color('card_color') }};
+            --color-border: {{ app_color('border_color') }};
+            --color-text-primary: {{ app_color('text_primary') }};
+            --color-text-secondary: {{ app_color('text_secondary') }};
+            --btn-radius: {{ app_color('button_radius', '0.75rem') }};
+            --hover-scale: {{ app_color('hover_scale', '1.05') }};
+        }
+
+        body {
+            background-color: var(--color-background);
+            color: var(--color-text-primary);
+        }
+    </style>
+
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100">
