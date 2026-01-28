@@ -1,66 +1,317 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# LinkInsight Pro  
+### LinkedIn Analytics & Growth Platform (Self-Hosted Edition)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+LinkInsight Pro is a powerful, self-hosted LinkedIn analytics and growth platform built with **Laravel and Tailwind CSS**.
 
-## About Laravel
+Designed for professionals, creators, marketers, and agencies, it delivers advanced LinkedIn performance insights, a full website CMS, complete SEO management, a dynamic theme system, and a secure commercial licensing engine.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This is **Version 1 – Non-SaaS (One-Time Purchase Edition)**.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Overview
 
-## Learning Laravel
+LinkInsight Pro provides a secure, extension-based LinkedIn analytics system that allows users to track profile growth, content performance, audience insights, and engagement metrics without storing LinkedIn credentials or violating platform policies.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+It includes:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+- Full analytics system
+- Full admin CMS
+- Complete SEO control
+- Global dynamic color engine
+- Theme system foundation
+- SMTP configuration
+- Dual-mode license validation
+- Smart installer
+- Structured addon architecture
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## Technology Stack
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- Laravel
+- Tailwind CSS
+- Blade Components
+- REST API Architecture
+- JWT Authentication
+- MySQL
+- Queue-ready Backend
+- Scheduler Support
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+# Core Features
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## LinkedIn Analytics Engine
 
-## Code of Conduct
+- Profile growth tracking
+- Connection and follower trends
+- Profile view history
+- Search appearance tracking
+- Content performance analytics
+- Engagement rate calculation
+- Post type analysis
+- Audience insights segmentation
+- Competitor comparison
+- Smart growth recommendations
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## Chrome Extension Integration
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- Secure extension-based data sync
+- Public LinkedIn profile URL mapping
+- Manual sync trigger
+- Optional scheduled sync
+- Sync history tracking
 
-## License
+Compliance Safe Design:
+- No LinkedIn credentials stored
+- No cookie or session storage
+- User-initiated sync only
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+## Full Admin CMS
+
+Editable pages:
+- Homepage
+- About Us
+- Contact
+- Privacy Policy
+- Terms and Conditions
+- Disclaimer
+- FAQ
+
+### Editable Homepage Sections
+
+Each section is fully configurable from Admin:
+
+- Hero
+- Mission
+- Vision
+- Problem Statement
+- Solution Statement
+- Why Choose Us
+- Testimonials
+- Call to Action
+- FAQ
+
+Each section supports:
+- Title
+- Subtitle
+- Rich text editor
+- Image upload
+- Icon selection
+- Ordering control
+- Show or hide toggle
+
+---
+
+## Advanced SEO Management
+
+### Global SEO Settings
+- Default meta title
+- Meta description
+- Keywords
+- Open Graph configuration
+- OG image upload
+- Favicon upload
+- Robots configuration
+- Auto sitemap generation
+- Canonical URL management
+
+### Page-Level SEO
+- Custom meta title
+- Meta description
+- Meta keywords
+- Open Graph tags
+- JSON-LD structured data injection
+- Index or noindex toggle
+- Custom slug management
+
+### Built-in SEO Tools
+- Sitemap generator
+- Social preview simulation
+- SEO validation preview
+
+---
+
+## Global Dynamic Color Engine
+
+Admin can configure:
+
+- Primary color
+- Secondary color
+- Accent color
+- Background color
+- Card styles
+- Text colors
+- Button states
+
+All color updates automatically apply across:
+
+- Public website
+- User dashboard
+- Admin dashboard
+
+Built using CSS variables integrated with Tailwind for dynamic branding.
+
+---
+
+## Theme System Foundation
+
+- Multiple theme support
+- Theme activation toggle
+- Safe rollback system
+- Layout customization
+- Font configuration
+- Header and footer customization
+- Logo control
+- Theme isolation from core system
+
+Designed for future theme marketplace expansion.
+
+---
+
+## Dual-Mode License System
+
+### Mode 1: Purchase Code Validation
+- Purchase code verification
+- Domain binding
+- License token generation
+- Support expiry tracking
+- Periodic revalidation
+
+### Mode 2: External License Code Validation
+- Custom license key activation
+- Domain locking
+- Token verification
+- Revocation capability
+
+### Security Features
+- Encrypted license token
+- Tamper detection
+- Validation ping system
+- License lock on failure
+- Owner auto-activation bypass
+
+Admin can view:
+- License status
+- Activation date
+- Support expiry
+- Last validation check
+
+---
+
+## Smart Installer
+
+Step-by-step installation wizard:
+
+1. Server requirement validation
+2. Folder permission check
+3. Database configuration
+4. Automatic migration
+5. Admin account creation
+6. SMTP configuration
+7. License validation
+8. Final activation
+
+No manual database setup required.
+
+---
+
+## SMTP & Email Configuration
+
+- Custom SMTP host
+- Port configuration
+- SSL or TLS toggle
+- Test email validation
+- Default sender settings
+- Editable email templates
+- Verification and password reset templates
+
+---
+
+## Security & Compliance
+
+- JWT authentication
+- CSRF protection
+- XSS protection
+- Rate limiting
+- Audit logs
+- Data deletion tools
+- GDPR-ready architecture
+- Secure API endpoints
+
+---
+
+## Dashboard & Visualization
+
+- Modern responsive UI
+- Deep shadows and hover effects
+- Grow-on-hover animations
+- Equal-sized grid layouts
+- Reusable Blade components
+- Interactive charts and KPI widgets
+
+---
+
+## Addon Architecture
+
+LinkInsight Pro uses a modular addon-ready system.
+
+### Official Addons (Version 1)
+
+**Theme Marketplace Addon**
+- Install new theme packages
+- Activate or deactivate themes
+- Safe update system
+- Version compatibility validation
+- Custom theme upload support
+
+**AI Insights & Advanced Analytics Addon**
+- AI-driven engagement insights
+- Growth prediction indicators
+- Smart content recommendations
+- Engagement anomaly detection
+- Predictive modeling
+- AI-generated performance reports
+
+Addons are isolated from core logic to maintain system stability.
+
+---
+
+## System Architecture Highlights
+
+- Clean separation of core and addons
+- Modular design
+- License-protected commercial structure
+- Theme-isolated rendering system
+- Webhook-ready backend
+- Scalable for future SaaS migration
+
+---
+
+## Version Information
+
+Version: 1.0  
+Edition: Self-Hosted (Non-SaaS)  
+License: Commercial (Ready)
+
+---
+
+## Design Philosophy
+
+- Modern, professional UI
+- Deep shadow system
+- Smooth hover transitions
+- Clean responsive layouts
+- Reusable component architecture
+- Fully configurable branding
+
+---
+
+LinkInsight Pro is built to be commercially secure, technically scalable, and visually modern.
