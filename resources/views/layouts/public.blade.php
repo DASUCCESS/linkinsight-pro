@@ -1,4 +1,3 @@
-{{-- resources/views/layouts/app.blade.php --}}
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -12,6 +11,7 @@
         /** @var \App\Models\Page|null $pageModel */
         $pageModel = isset($page) ? $page : null;
 
+        // Global SEO defaults from Settings
         $globalSeo = [
             'meta_title'       => Setting::getValue('seo', 'meta_title'),
             'meta_description' => Setting::getValue('seo', 'meta_description'),
@@ -22,10 +22,11 @@
             'canonical_url'    => Setting::getValue('seo', 'canonical_url'),
         ];
 
+        // Priority: page SEO -> global SEO -> app defaults
         $seoTitle = $pageModel?->meta_title
             ?? $globalSeo['meta_title']
             ?? $pageModel?->title
-            ?? config('app.name', 'Laravel');
+            ?? config('app.name', 'LinkInsight Pro');
 
         $seoDescription = $pageModel?->meta_description
             ?? $globalSeo['meta_description']
@@ -120,20 +121,14 @@
     @stack('head')
 </head>
 <body class="font-sans antialiased">
-<div class="min-h-screen bg-gray-100">
-    @include('layouts.navigation')
+<div class="min-h-screen flex flex-col bg-slate-50">
+    @include('layouts.public-navigation')
 
-    @if (isset($header))
-        <header class="bg-white shadow">
-            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                {{ $header }}
-            </div>
-        </header>
-    @endif
-
-    <main>
-        {{ $slot }}
+    <main class="flex-1">
+        @yield('content')
     </main>
+
+    @include('layouts.public-footer')
 </div>
 </body>
 </html>
