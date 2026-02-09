@@ -12,8 +12,16 @@ class AdminMiddleware
     {
         $user = $request->user();
 
-        if (! $user || ! $user->is_admin) {
+        if (! $user) {
             abort(403, 'Unauthorized');
+        }
+
+        if (! ($user->is_admin || $user->role === 'admin')) {
+            abort(403, 'Unauthorized – Admin access only');
+        }
+
+        if ($user->status !== 'active') {
+            abort(403, 'Account inactive');
         }
 
         return $next($request);

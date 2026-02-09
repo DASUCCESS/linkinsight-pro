@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\PageSectionController;
 use App\Http\Controllers\Web\PageController as PublicPageController;
+use App\Http\Controllers\Admin\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,6 +74,16 @@ Route::middleware(['auth', 'admin'])
             Route::get('/pages/{page}/sections', [PageSectionController::class, 'index'])->name('sections.index');
             Route::put('/pages/{page}/sections/{section}', [PageSectionController::class, 'update'])->name('sections.update');
         });
+
+        // User management
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+        Route::post('/users/{user}/suspend', [UserController::class, 'suspend'])->name('users.suspend');
+
     });
 
 /**

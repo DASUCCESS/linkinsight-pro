@@ -78,7 +78,12 @@
                 label="Dashboard"
                 :active="request()->routeIs('admin.dashboard')" />
 
-            <x-admin.sidebar-item href="#" icon="users" label="Users" :active="false" />
+            <x-admin.sidebar-item
+                :href="route('admin.users.index')"
+                icon="users"
+                label="Users"
+                :active="request()->routeIs('admin.users.*')" />
+
             <x-admin.sidebar-item href="#" icon="bar-chart-2" label="Analytics" :active="false" />
 
             <x-admin.sidebar-item
