@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
@@ -25,8 +24,37 @@
             background-color: var(--color-background);
             color: var(--color-text-primary);
         }
+
+        trix-editor {
+            min-height: 120px;
+            border-radius: 0.75rem;
+            border: 1px solid rgb(226 232 240);
+            padding: 0.5rem 0.75rem;
+            background-color: rgb(15 23 42 / 0.02);
+        }
+        .dark trix-editor {
+            border-color: rgb(51 65 85);
+            background-color: rgb(15 23 42);
+            color: rgb(226 232 240);
+        }
+        trix-toolbar {
+            border-radius: 0.75rem 0.75rem 0 0;
+            border: 1px solid rgb(226 232 240);
+            border-bottom: 0;
+            background-color: rgb(248 250 252);
+        }
+        .dark trix-toolbar {
+            border-color: rgb(51 65 85);
+            background-color: rgb(15 23 42);
+        }
     </style>
+
+    @stack('head')
+
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://unpkg.com/trix@2.0.6/dist/trix.umd.min.js"></script>
 </head>
+
 <body class="min-h-screen font-sans antialiased bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-100">
 <div class="flex min-h-screen bg-slate-100 dark:bg-slate-950">
     {{-- Desktop Sidebar --}}
@@ -50,18 +78,9 @@
                 label="Dashboard"
                 :active="request()->routeIs('admin.dashboard')" />
 
-            <x-admin.sidebar-item
-                href="#"
-                icon="users"
-                label="Users"
-                :active="false" />
+            <x-admin.sidebar-item href="#" icon="users" label="Users" :active="false" />
+            <x-admin.sidebar-item href="#" icon="bar-chart-2" label="Analytics" :active="false" />
 
-            <x-admin.sidebar-item
-                href="#"
-                icon="bar-chart-2"
-                label="Analytics"
-                :active="false" />
-                
             <x-admin.sidebar-item
                 :href="route('admin.cms.pages.index')"
                 icon="file-text"
@@ -75,19 +94,13 @@
                 :active="request()->routeIs('admin.settings.*')" />
 
             <div class="mt-6 pt-4 border-t border-slate-800">
-                <x-admin.sidebar-item
-                    href="#"
-                    icon="bell"
-                    label="Notifications"
-                    :active="false" />
+                <x-admin.sidebar-item href="#" icon="bell" label="Notifications" :active="false" />
             </div>
         </nav>
 
         <div class="p-4 border-t border-slate-800">
             <div class="bg-gradient-to-r from-indigo-500 to-sky-500 rounded-2xl p-3 shadow-2xl">
-                <div class="text-xs text-slate-100 mb-1 font-semibold">
-                    System Status
-                </div>
+                <div class="text-xs text-slate-100 mb-1 font-semibold">System Status</div>
                 <div class="flex items-center justify-between text-[11px] text-slate-100/90">
                     <span>Version 1.0.0</span>
                     <span class="px-2 py-0.5 rounded-full bg-slate-900/40">CodeCanyon ready</span>
@@ -111,7 +124,7 @@
             </div>
             <button type="button"
                     onclick="closeMobileSidebar()"
-                    class="ml-auto inline-flex items-center justify-center h-8 w-8 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 cursor-pointer transition transform hover:scale-[var(--hover-scale)]">
+                    class="ml-auto inline-flex items-center justify-center h-8 w-8 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 cursor-pointer transition hover:bg-slate-800">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -125,17 +138,8 @@
                 label="Dashboard"
                 :active="request()->routeIs('admin.dashboard')" />
 
-            <x-admin.sidebar-item
-                href="#"
-                icon="users"
-                label="Users"
-                :active="false" />
-
-            <x-admin.sidebar-item
-                href="#"
-                icon="bar-chart-2"
-                label="Analytics"
-                :active="false" />
+            <x-admin.sidebar-item href="#" icon="users" label="Users" :active="false" />
+            <x-admin.sidebar-item href="#" icon="bar-chart-2" label="Analytics" :active="false" />
 
             <x-admin.sidebar-item
                 :href="route('admin.settings.edit')"
@@ -144,11 +148,7 @@
                 :active="request()->routeIs('admin.settings.*')" />
 
             <div class="mt-6 pt-4 border-t border-slate-800">
-                <x-admin.sidebar-item
-                    href="#"
-                    icon="bell"
-                    label="Notifications"
-                    :active="false" />
+                <x-admin.sidebar-item href="#" icon="bell" label="Notifications" :active="false" />
             </div>
         </nav>
     </aside>
@@ -165,7 +165,7 @@
                 <div class="flex items-center gap-3">
                     <button type="button"
                             onclick="openMobileSidebar()"
-                            class="lg:hidden inline-flex items-center justify-center h-10 w-10 rounded-2xl bg-white dark:bg-slate-900 shadow-md border border-slate-200 dark:border-slate-700 cursor-pointer transition transform hover:scale-[var(--hover-scale)]">
+                            class="lg:hidden inline-flex items-center justify-center h-10 w-10 rounded-2xl bg-white dark:bg-slate-900 shadow-md border border-slate-200 dark:border-slate-700 cursor-pointer transition hover:shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600 dark:text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
@@ -194,14 +194,12 @@
                     {{-- Dark mode toggle --}}
                     <button type="button"
                             onclick="toggleTheme()"
-                            class="h-10 w-10 rounded-full bg-white dark:bg-slate-900 shadow-md border border-slate-200 dark:border-slate-700 flex items-center justify-center cursor-pointer transition transform hover:scale-[var(--hover-scale)]">
-                        <svg id="themeToggleIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-700 dark:text-slate-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                            {{-- Icon updated via JS on load --}}
-                        </svg>
+                            class="h-10 w-10 rounded-full bg-white dark:bg-slate-900 shadow-md border border-slate-200 dark:border-slate-700 flex items-center justify-center cursor-pointer transition hover:shadow-lg">
+                        <svg id="themeToggleIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-700 dark:text-slate-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"></svg>
                     </button>
 
                     {{-- Notifications --}}
-                    <button class="relative h-10 w-10 rounded-full bg-white dark:bg-slate-900 shadow-md border border-slate-200 dark:border-slate-700 flex items-center justify-center cursor-pointer transition transform hover:scale-[var(--hover-scale)]">
+                    <button class="relative h-10 w-10 rounded-full bg-white dark:bg-slate-900 shadow-md border border-slate-200 dark:border-slate-700 flex items-center justify-center cursor-pointer transition hover:shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600 dark:text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5" />
                         </svg>
@@ -220,7 +218,9 @@
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit"
-                                    class="hidden md:inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-semibold cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 shadow-md transition transform hover:scale-[var(--hover-scale)]">
+                                    class="hidden md:inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-semibold cursor-pointer
+                                           border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100
+                                           shadow-md transition hover:shadow-lg">
                                 Sign out
                             </button>
                         </form>
@@ -240,11 +240,8 @@
     (function () {
         const root = document.documentElement;
         const storedTheme = localStorage.getItem('linkinsight_theme');
-        if (storedTheme === 'dark') {
-            root.classList.add('dark');
-        } else {
-            root.classList.remove('dark');
-        }
+        if (storedTheme === 'dark') root.classList.add('dark');
+        else root.classList.remove('dark');
         updateThemeIcon();
     })();
 
@@ -258,15 +255,11 @@
     function updateThemeIcon() {
         const icon = document.getElementById('themeToggleIcon');
         const isDark = document.documentElement.classList.contains('dark');
-
         if (!icon) return;
 
         if (isDark) {
-            // Moon icon
-            icon.innerHTML =
-                '<path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />';
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />';
         } else {
-            // Sun icon
             icon.innerHTML =
                 '<circle cx="12" cy="12" r="4" />' +
                 '<path stroke-linecap="round" stroke-linejoin="round" d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />';
@@ -277,7 +270,6 @@
         const sidebar = document.getElementById('mobileSidebar');
         const backdrop = document.getElementById('mobileSidebarBackdrop');
         if (!sidebar || !backdrop) return;
-
         sidebar.classList.remove('-translate-x-full');
         backdrop.classList.remove('pointer-events-none');
         backdrop.classList.remove('opacity-0');
@@ -287,7 +279,6 @@
         const sidebar = document.getElementById('mobileSidebar');
         const backdrop = document.getElementById('mobileSidebarBackdrop');
         if (!sidebar || !backdrop) return;
-
         sidebar.classList.add('-translate-x-full');
         backdrop.classList.add('pointer-events-none');
         backdrop.classList.add('opacity-0');

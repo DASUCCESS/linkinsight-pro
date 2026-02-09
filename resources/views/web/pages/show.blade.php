@@ -2,14 +2,16 @@
 
 @section('content')
     <div class="max-w-3xl mx-auto py-10 px-4">
-        <h1 class="text-3xl font-semibold mb-4 text-slate-900">{{ $page->title }}</h1>
+        <h1 class="text-3xl font-semibold mb-4" style="color: var(--color-text-primary);">
+            {{ $page->title }}
+        </h1>
 
         @if($page->content)
-            <div class="prose max-w-none text-slate-800">
+            <div class="cms-content max-w-none" style="color: var(--color-text-secondary);">
                 {!! $page->content !!}
             </div>
         @else
-            <p class="text-slate-500">Content coming soon.</p>
+            <p class="text-sm" style="color: var(--color-text-secondary);">Content coming soon.</p>
         @endif
     </div>
 @endsection

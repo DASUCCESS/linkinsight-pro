@@ -1,3 +1,4 @@
+{{-- resources/views/layouts/public.blade.php --}}
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -11,7 +12,6 @@
         /** @var \App\Models\Page|null $pageModel */
         $pageModel = isset($page) ? $page : null;
 
-        // Global SEO defaults from Settings
         $globalSeo = [
             'meta_title'       => Setting::getValue('seo', 'meta_title'),
             'meta_description' => Setting::getValue('seo', 'meta_description'),
@@ -22,7 +22,6 @@
             'canonical_url'    => Setting::getValue('seo', 'canonical_url'),
         ];
 
-        // Priority: page SEO -> global SEO -> app defaults
         $seoTitle = $pageModel?->meta_title
             ?? $globalSeo['meta_title']
             ?? $pageModel?->title
@@ -64,12 +63,7 @@
         <meta name="keywords" content="{{ $seoKeywords }}">
     @endif
 
-    @if($indexable)
-        <meta name="robots" content="index,follow">
-    @else
-        <meta name="robots" content="noindex,nofollow">
-    @endif
-
+    <meta name="robots" content="{{ $indexable ? 'index,follow' : 'noindex,nofollow' }}">
     <link rel="canonical" href="{{ $canonical }}">
 
     <meta property="og:type" content="website">
@@ -88,9 +82,7 @@
                 ? json_encode($pageModel->json_ld, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
                 : $pageModel->json_ld;
         @endphp
-        <script type="application/ld+json">
-            {!! $jsonLd !!}
-        </script>
+        <script type="application/ld+json">{!! $jsonLd !!}</script>
     @endif
 
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -98,37 +90,19 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    <style>
-        :root {
-            --color-primary: {{ app_color('primary_color') }};
-            --color-secondary: {{ app_color('secondary_color') }};
-            --color-accent: {{ app_color('accent_color') }};
-            --color-background: {{ app_color('background_color') }};
-            --color-card: {{ app_color('card_color') }};
-            --color-border: {{ app_color('border_color') }};
-            --color-text-primary: {{ app_color('text_primary') }};
-            --color-text-secondary: {{ app_color('text_secondary') }};
-            --btn-radius: {{ app_color('button_radius', '0.75rem') }};
-            --hover-scale: {{ app_color('hover_scale', '1.05') }};
-        }
-
-        body {
-            background-color: var(--color-background);
-            color: var(--color-text-primary);
-        }
-    </style>
+    @include('layouts.public-styles')
 
     @stack('head')
 </head>
 <body class="font-sans antialiased">
-<div class="min-h-screen flex flex-col bg-slate-50">
-    @include('layouts.public-navigation')
+    <div class="min-h-screen flex flex-col" style="background-color: var(--color-background);">
+        @include('layouts.public-navigation')
 
-    <main class="flex-1">
-        @yield('content')
-    </main>
+        <main class="flex-1">
+            @yield('content')
+        </main>
 
-    @include('layouts.public-footer')
-</div>
+        @include('layouts.public-footer')
+    </div>
 </body>
 </html>
