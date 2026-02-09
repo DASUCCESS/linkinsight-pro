@@ -1,19 +1,11 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\LinkedinSyncController;
+use App\Http\Controllers\Api\LinkedinDashboardController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
-*/
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::post('/linkedin/sync/profile', [LinkedinSyncController::class, 'syncProfile']);
+    Route::post('/linkedin/sync/posts', [LinkedinSyncController::class, 'syncPosts']);
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+    Route::get('/linkedin/dashboard/summary', [LinkedinDashboardController::class, 'summary']);
 });

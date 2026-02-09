@@ -9,6 +9,12 @@ use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\PageSectionController;
 use App\Http\Controllers\Web\PageController as PublicPageController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\AnalyticsController;
+
+use App\Http\Controllers\User\DashboardController as UserDashboardController;
+use App\Http\Controllers\User\LinkedinProfileController;
+use App\Http\Controllers\User\AnalyticsController as UserAnalyticsController;
+use App\Http\Controllers\Extension\TokenController;
 
 /*
 |--------------------------------------------------------------------------
@@ -84,19 +90,34 @@ Route::middleware(['auth', 'admin'])
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
         Route::post('/users/{user}/suspend', [UserController::class, 'suspend'])->name('users.suspend');
 
+        Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+
     });
 
 /**
  * Authenticated user dashboard
  */
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// Route::get('/dashboard', [UserDashboardController::class, 'index'])
+//     ->middleware(['auth', 'verified'])
+//     ->name('dashboard');
 
+Route::get('/extension/api-token', TokenController::class)
+    ->middleware(['auth'])
+    ->name('extension.api-token');
+    
 /**
  * Profile routes
  */
 Route::middleware('auth')->group(function () {
+
+    Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/linkedin/profiles', [LinkedinProfileController::class, 'index'])
+        ->name('user.linkedin.profiles.index');
+
+    Route::get('/linkedin/analytics', [UserAnalyticsController::class, 'index'])
+        ->name('user.linkedin.analytics.index');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

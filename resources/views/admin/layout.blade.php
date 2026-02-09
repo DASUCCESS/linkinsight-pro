@@ -84,7 +84,11 @@
                 label="Users"
                 :active="request()->routeIs('admin.users.*')" />
 
-            <x-admin.sidebar-item href="#" icon="bar-chart-2" label="Analytics" :active="false" />
+            <x-admin.sidebar-item
+                :href="route('admin.analytics.index')"
+                icon="bar-chart-2"
+                label="Analytics"
+                :active="request()->routeIs('admin.analytics.*')" />
 
             <x-admin.sidebar-item
                 :href="route('admin.cms.pages.index')"
@@ -143,8 +147,17 @@
                 label="Dashboard"
                 :active="request()->routeIs('admin.dashboard')" />
 
-            <x-admin.sidebar-item href="#" icon="users" label="Users" :active="false" />
-            <x-admin.sidebar-item href="#" icon="bar-chart-2" label="Analytics" :active="false" />
+            <x-admin.sidebar-item
+                :href="route('admin.users.index')"
+                icon="users"
+                label="Users"
+                :active="request()->routeIs('admin.users.*')" />
+
+            <x-admin.sidebar-item
+                :href="route('admin.analytics.index')"
+                icon="bar-chart-2"
+                label="Analytics"
+                :active="request()->routeIs('admin.analytics.*')" />
 
             <x-admin.sidebar-item
                 :href="route('admin.settings.edit')"
@@ -186,7 +199,6 @@
                 </div>
 
                 <div class="flex items-center gap-3 lg:gap-4">
-                    {{-- Search --}}
                     <div class="hidden md:flex items-center bg-white dark:bg-slate-900 rounded-full shadow-md border border-slate-200 dark:border-slate-700 px-3 py-1.5 w-56 lg:w-64">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
@@ -196,14 +208,12 @@
                             placeholder="Search in admin..." />
                     </div>
 
-                    {{-- Dark mode toggle --}}
                     <button type="button"
                             onclick="toggleTheme()"
                             class="h-10 w-10 rounded-full bg-white dark:bg-slate-900 shadow-md border border-slate-200 dark:border-slate-700 flex items-center justify-center cursor-pointer transition hover:shadow-lg">
                         <svg id="themeToggleIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-700 dark:text-slate-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"></svg>
                     </button>
 
-                    {{-- Notifications --}}
                     <button class="relative h-10 w-10 rounded-full bg-white dark:bg-slate-900 shadow-md border border-slate-200 dark:border-slate-700 flex items-center justify-center cursor-pointer transition hover:shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600 dark:text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5" />
@@ -211,7 +221,6 @@
                         <span class="absolute top-1 right-1 inline-flex h-2 w-2 rounded-full bg-rose-500"></span>
                     </button>
 
-                    {{-- User --}}
                     <div class="flex items-center gap-3">
                         <div class="hidden md:flex flex-col items-end">
                             <span class="text-xs font-medium text-slate-700 dark:text-slate-100">{{ auth()->user()->name }}</span>
@@ -234,7 +243,6 @@
             </div>
         </header>
 
-        {{-- Content --}}
         <main class="flex-1 px-4 lg:px-8 py-6 lg:py-8">
             @yield('content')
         </main>

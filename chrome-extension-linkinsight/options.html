@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LinkInsight Pro – Options</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #020617;
+            color: #e5e7eb;
+            margin: 0;
+            padding: 24px;
+        }
+        .card {
+            max-width: 480px;
+            margin: 0 auto;
+            background: #020617;
+            border-radius: 16px;
+            border: 1px solid #1e293b;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.9);
+            padding: 20px 20px 16px;
+        }
+        h1 {
+            font-size: 16px;
+            margin: 0 0 4px;
+        }
+        p {
+            font-size: 13px;
+            color: #9ca3af;
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 11px;
+            margin-bottom: 4px;
+            color: #9ca3af;
+        }
+        input[type=text], input[type=password] {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 13px;
+            border-radius: 10px;
+            border: 1px solid #1e293b;
+            background: #020617;
+            color: #e5e7eb;
+            box-sizing: border-box;
+        }
+        input[type=text]:focus, input[type=password]:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.3);
+        }
+        button {
+            margin-top: 16px;
+            padding: 8px 16px;
+            font-size: 13px;
+            border-radius: 999px;
+            border: none;
+            cursor: pointer;
+            color: #ffffff;
+            background-image: linear-gradient(to right, #4f46e5, #0ea5e9);
+            box-shadow: 0 16px 30px rgba(15, 23, 42, 0.7);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.9);
+        }
+        .status {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #22c55e;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>LinkInsight Pro – API Configuration</h1>
+    <p>Set your backend API URL and personal API token. You get these from the LinkInsight Pro web app.</p>
+
+    <label for="apiBaseUrl">API Base URL (no trailing slash)</label>
+    <input type="text" id="apiBaseUrl" placeholder="http://127.0.0.1:8000">
+
+    <label for="apiToken" style="margin-top: 10px;">API Token (optional manual override)</label>
+    <input type="password" id="apiToken" placeholder="Usually fetched automatically">
+
+    <button id="saveBtn">Save settings</button>
+    <button id="fetchBtn" style="margin-left: 8px;">Fetch from app</button>
+    <div id="status" class="status"></div>
+
+</div>
+
+<script src="options.js"></script>
+</body>
+</html>

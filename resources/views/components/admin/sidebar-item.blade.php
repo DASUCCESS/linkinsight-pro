@@ -13,11 +13,12 @@
 
 <a href="{{ $href }}" class="{{ $baseClasses }} {{ $active ? $activeClasses : $inactiveClasses }}">
     <span class="inline-flex items-center gap-2">
-        @if($icon)
+        @if($icon && \Illuminate\Support\Facades\View::exists('components.admin.icons.'.$icon))
             <span class="h-7 w-7 rounded-xl flex items-center justify-center bg-slate-900/80 border border-slate-700">
-                @includeWhen($icon, 'components.admin.icons.'.$icon)
+                @include('components.admin.icons.'.$icon)
             </span>
         @endif
+
         <span>{{ $label }}</span>
     </span>
 </a>

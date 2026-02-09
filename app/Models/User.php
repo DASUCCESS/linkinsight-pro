@@ -45,4 +45,24 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->status === 'active';
     }
+
+    public function linkedinProfiles()
+    {
+        return $this->hasMany(LinkedinProfile::class);
+    }
+    
+    public function issueExtensionToken(): string
+    {
+        if ($this->extension_api_token) {
+            return $this->extension_api_token;
+        }
+
+        $token = Str::random(60);
+
+        $this->forceFill([
+            'extension_api_token' => $token,
+        ])->save();
+
+        return $token;
+    }
 }

@@ -13,9 +13,6 @@
                     @if($logoPath)
                         <img src="{{ asset('storage/'.$logoPath) }}" alt="{{ $siteName }}" class="h-8 w-auto object-contain">
                     @else
-                        <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 text-white text-xs font-bold shadow">
-                            LI
-                        </span>
                     @endif
                     <span class="text-sm font-semibold text-slate-800">{{ $siteName }}</span>
                 </a>
