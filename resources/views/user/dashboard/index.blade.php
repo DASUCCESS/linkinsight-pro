@@ -131,7 +131,7 @@
                                 Trends last 30 days
                             </h3>
                             <p class="text-[11px] text-slate-500 dark:text-slate-400">
-                                Chart area. We will connect Chart.js here.
+                                Based on your profile metrics.
                             </p>
                         </div>
 
@@ -257,6 +257,10 @@
                                 </div>
                             @endforeach
                         </div>
+
+                        <div class="mt-3">
+                            {{ $syncJobs->links() }}
+                        </div>
                     @endif
                 </div>
 
@@ -279,11 +283,10 @@
 @endsection
 
 @push('scripts')
+@if(($summary['status'] ?? 'empty') === 'ok')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    if (!window.Chart) {
-        return;
-    }
+    if (!window.Chart) return;
 
     const labels = @json($times['dates'] ?? []);
     const connectionsData = @json($times['connections'] ?? []);
@@ -291,26 +294,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const viewsData = @json($times['profile_views'] ?? []);
     const searchData = @json($times['search_appearances'] ?? []);
 
-    if (!labels.length) {
-        return;
-    }
+    if (!labels.length) return;
 
     const rootStyle = getComputedStyle(document.documentElement);
-    const colorPrimary = rootStyle.getPropertyValue('--color-primary').trim() || '#4f46e5';
+    const colorPrimary   = rootStyle.getPropertyValue('--color-primary').trim() || '#4f46e5';
     const colorSecondary = rootStyle.getPropertyValue('--color-secondary').trim() || '#0ea5e9';
-    const colorAccent = rootStyle.getPropertyValue('--color-accent').trim() || '#f97316';
+    const colorAccent    = rootStyle.getPropertyValue('--color-accent').trim() || '#f97316';
+    const textColor      = rootStyle.getPropertyValue('--color-text-secondary').trim() || '#6b7280';
 
     const commonOptions = {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-            mode: 'index',
-            intersect: false
-        },
+        interaction: { mode: 'index', intersect: false },
         plugins: {
             legend: {
                 labels: {
-                    color: rootStyle.getPropertyValue('--color-text-secondary').trim() || '#6b7280',
+                    color: textColor,
                     font: { size: 11 }
                 }
             },
@@ -327,21 +326,15 @@ document.addEventListener('DOMContentLoaded', function () {
         scales: {
             x: {
                 ticks: {
-                    color: rootStyle.getPropertyValue('--color-text-secondary').trim() || '#6b7280',
+                    color: textColor,
                     maxRotation: 0,
                     autoSkip: true
                 },
-                grid: {
-                    display: false
-                }
+                grid: { display: false }
             },
             y: {
-                ticks: {
-                    color: rootStyle.getPropertyValue('--color-text-secondary').trim() || '#6b7280'
-                },
-                grid: {
-                    color: 'rgba(148, 163, 184, 0.25)'
-                },
+                ticks: { color: textColor },
+                grid: { color: 'rgba(148,163,184,0.25)' },
                 beginAtZero: true
             }
         }
@@ -414,4 +407,5 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
+@endif
 @endpush

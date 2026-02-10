@@ -23,7 +23,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'role',
         'status',
         'avatar_path',
-        'is_admin',  
+        'is_admin',
     ];
 
     protected $hidden = [
@@ -50,6 +50,18 @@ class User extends Authenticatable implements MustVerifyEmail
     public function linkedinProfiles()
     {
         return $this->hasMany(LinkedinProfile::class);
+    }
+
+    public function linkedinPosts()
+    {
+        return $this->hasManyThrough(
+            LinkedinPost::class,       
+            LinkedinProfile::class,    
+            'user_id',                
+            'linkedin_profile_id',     
+            'id',                      // Local key on users table
+            'id'                       // Local key on LinkedinProfile table
+        );
     }
 
     public function issueExtensionToken(): string

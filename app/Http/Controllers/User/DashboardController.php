@@ -20,9 +20,15 @@ class DashboardController extends Controller
         $summary = $this->analyticsService->getSummaryForUser($user, null);
 
         $syncJobs = LinkedinSyncJob::where('user_id', $user->id)
+            ->when($request->query('sync_status'), function ($q, $status) {
+                $q->where('status', $status);
+            })
+            ->when($request->query('sync_type'), function ($q, $type) {
+                $q->where('type', $type);
+            })
             ->orderByDesc('created_at')
-            ->limit(5)
-            ->get();
+            ->paginate(5)
+            ->withQueryString();
 
         return view('user.dashboard.index', compact('summary', 'syncJobs'));
     }

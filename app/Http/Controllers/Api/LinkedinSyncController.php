@@ -17,11 +17,6 @@ use Illuminate\Support\Str;
 
 class LinkedinSyncController extends Controller
 {
-    /**
-     * Resolve user and source.
-     * - If Authorization: Bearer <extension_api_token> is present, authenticate via extension token.
-     * - Otherwise fall back to normal authenticated user (Sanctum/session).
-     */
     protected function resolveUserAndSource(Request $request): array
     {
         $authHeader = $request->header('Authorization');
@@ -47,11 +42,6 @@ class LinkedinSyncController extends Controller
         return [$user, 'api'];
     }
 
-    /**
-     * Unified profile sync entry point.
-     * - If "metrics" is present in the payload, use rich sync logic.
-     * - Otherwise use the simple Chrome extension payload logic.
-     */
     public function syncProfile(Request $request)
     {
         [$user, $source] = $this->resolveUserAndSource($request);
@@ -63,9 +53,6 @@ class LinkedinSyncController extends Controller
         return $this->syncProfileSimple($request, $user, $source);
     }
 
-    /**
-     * Rich profile sync (metrics + optional audience).
-     */
     protected function syncProfileWithMetrics(Request $request, User $user, string $source)
     {
         $data = $request->validate([
@@ -204,13 +191,6 @@ class LinkedinSyncController extends Controller
         }
     }
 
-    /**
-     * Simple profile sync used by the Chrome extension.
-     * Accepts lightweight payload and maps it into the same models.
-     * Accepts BOTH:
-     * - connections/followers
-     * - connections_count/followers_count
-     */
     protected function syncProfileSimple(Request $request, User $user, string $source)
     {
         $data = $request->validate([
@@ -328,11 +308,6 @@ class LinkedinSyncController extends Controller
         }
     }
 
-    /**
-     * Unified posts sync entry point.
-     * - If posts.*.metrics is present, use rich posts logic.
-     * - Otherwise use the simple Chrome extension posts payload.
-     */
     public function syncPosts(Request $request)
     {
         [$user, $source] = $this->resolveUserAndSource($request);
@@ -356,9 +331,6 @@ class LinkedinSyncController extends Controller
         return $this->syncPostsSimple($request, $user, $source);
     }
 
-    /**
-     * Rich posts sync (per post metrics).
-     */
     protected function syncPostsWithMetrics(Request $request, User $user, string $source)
     {
         $data = $request->validate([
@@ -484,10 +456,6 @@ class LinkedinSyncController extends Controller
         }
     }
 
-    /**
-     * Simple posts sync used by the Chrome extension.
-     * Supports extra fields (activity_category, media_type, reposts, target_permalink).
-     */
     protected function syncPostsSimple(Request $request, User $user, string $source)
     {
         $validated = $request->validate([
@@ -616,13 +584,6 @@ class LinkedinSyncController extends Controller
         }
     }
 
-    /**
-     * Normalizes numbers like:
-     * - "1,234" => 1234
-     * - "500+ connections" => 500
-     * - "1.2k" => 1200
-     * - "3m" => 3000000
-     */
     protected function normalizeNumber($value): ?int
     {
         if ($value === null || $value === '') {
@@ -635,11 +596,8 @@ class LinkedinSyncController extends Controller
 
         $str = trim((string) $value);
         $str = str_replace(',', '', $str);
-
-        // Remove plus anywhere after a number (handles "500+ connections")
         $str = preg_replace('/(\d)\+/', '$1', $str);
 
-        // Exact compact forms: 1.2k / 3m / 4b
         if (preg_match('/^(\d+(?:\.\d+)?)([kmb])$/i', $str, $matches)) {
             $num = (float) $matches[1];
             $suffix = strtolower($matches[2]);
@@ -653,7 +611,6 @@ class LinkedinSyncController extends Controller
             return (int) round($num * $multiplier);
         }
 
-        // If string contains words, extract first numeric token + optional suffix.
         if (!is_numeric($str)) {
             if (preg_match('/(\d[\d\.]*)(\s*)([kmb])?/i', $str, $m)) {
                 $num = (float) $m[1];
@@ -674,12 +631,6 @@ class LinkedinSyncController extends Controller
         return (int) $str;
     }
 
-    /**
-     * Parses LinkedIn time strings like:
-     * - "just now"
-     * - "4h", "1d", "2w", "3mo", "1y"
-     * Also supports full dates (Carbon::parse).
-     */
     protected function parseLinkedInDate(?string $text): ?Carbon
     {
         if (!$text) {

@@ -297,5 +297,7 @@
         backdrop.classList.add('opacity-0');
     }
 </script>
+
+@stack('scripts')
 </body>
 </html>

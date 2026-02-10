@@ -14,10 +14,10 @@ class AnalyticsController extends Controller
 
     public function index(Request $request)
     {
-        $user = $request->user();
-        $profileId = $request->query('profile_id');
+        $from = $request->query('from');
+        $to   = $request->query('to');
 
-        $summary = $this->analyticsService->getSummaryForUser($user, $profileId);
+        $summary = $this->analyticsService->getSystemSummary($from, $to);
 
         return view('admin.analytics.index', compact('summary'));
     }
