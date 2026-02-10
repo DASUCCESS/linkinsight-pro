@@ -6,10 +6,61 @@ function isActivityPage(url) {
     return /^https:\/\/www\.linkedin\.com\/in\/[^/]+\/recent-activity/.test(url);
 }
 
+function parseLinkedinCount(value) {
+    if (value === null || value === undefined) {
+        return null;
+    }
+
+    const raw = String(value)
+        .replace(/,/g, '')
+        .replace(/\s+/g, '')
+        .toLowerCase();
+
+    if (!raw) {
+        return null;
+    }
+
+    const match = raw.match(/(\d+(?:\.\d+)?)([kmb])?\+?/i);
+    if (!match) {
+        return null;
+    }
+
+    const base = Number(match[1]);
+    if (Number.isNaN(base)) {
+        return null;
+    }
+
+    const suffix = (match[2] || '').toLowerCase();
+    const multiplier = suffix === 'k'
+        ? 1000
+        : suffix === 'm'
+            ? 1000000
+            : suffix === 'b'
+                ? 1000000000
+                : 1;
+
+    return Math.round(base * multiplier);
+}
+
+function normalizeLinkedinUrl(url) {
+    if (!url) {
+        return window.location.href;
+    }
+
+    try {
+        const parsed = new URL(url, window.location.origin);
+        parsed.search = '';
+        parsed.hash = '';
+        return parsed.toString().replace(/\/+$/, '');
+    } catch (e) {
+        return String(url).split('?')[0].split('#')[0].replace(/\/+$/, '');
+    }
+}
+
 function scrapeProfile() {
     const result = {
         linkedin_id: null,
-        public_url: window.location.href,
+        public_url: normalizeLinkedinUrl(window.location.href),
         name: null,
         headline: null,
         location: null,
@@ -22,6 +73,14 @@ function scrapeProfile() {
         const urlMatch = window.location.pathname.match(/\/in\/([^/]+)/);
         if (urlMatch) {
             result.linkedin_id = urlMatch[1];
+        }
+
+        const canonicalEl = document.querySelector('link[rel="canonical"]');
+        if (canonicalEl && canonicalEl.href) {
+            const canonical = normalizeLinkedinUrl(canonicalEl.href);
+            if (/linkedin\.com\/in\//.test(canonical)) {
+                result.public_url = canonical;
+            }
         }
 
         const nameEl =
@@ -42,7 +101,7 @@ function scrapeProfile() {
         }
 
         const locationCandidates = document.querySelectorAll(
-            '.pv-text-details__left-panel span.text-body-small, .pv-text-details__left-panel span.inline-block'
+            '.pv-text-details__left-panel span.text-body-small, .pv-text-details__left-panel span.inline-block, main .text-body-small'
         );
 
         if (locationCandidates.length) {
@@ -55,35 +114,22 @@ function scrapeProfile() {
             }
         }
 
-        const statsRoots = [
-            '.pv-top-card--list',
-            '.pv-top-card--list-bullet',
-            '.pv-top-card__list',
-            'section.pv-top-card'
-        ];
-
-        let statSpans = [];
-        for (const selector of statsRoots) {
-            const node = document.querySelector(selector);
-            if (node) {
-                statSpans = Array.from(node.querySelectorAll('span'));
-                if (statSpans.length) break;
-            }
-        }
+        const statSpans = Array.from(document.querySelectorAll('main span, main li, main a'));
 
         statSpans
             .map(e => e.innerText.trim())
             .filter(Boolean)
             .forEach(t => {
-                const clean = t.replace(/,/g, '');
-                const numMatch = clean.match(/(\d+\+?)/);
-                if (!numMatch) return;
-                const numStr = numMatch[1];
-
                 if (/connections/i.test(t)) {
-                    result.connections = numStr;
+                    const value = parseLinkedinCount(t);
+                    if (value !== null) {
+                        result.connections = value;
+                    }
                 } else if (/followers/i.test(t)) {
-                    result.followers = numStr;
+                    const value = parseLinkedinCount(t);
+                    if (value !== null) {
+                        result.followers = value;
+                    }
                 }
             });
 
@@ -91,7 +137,7 @@ function scrapeProfile() {
             document.querySelector('.pv-top-card-profile-picture__image') ||
             document.querySelector('img.pv-top-card-profile-picture__image') ||
             document.querySelector('img.profile-photo-edit__preview') ||
-            document.querySelector('img[alt*="profile"]') ||
+            document.querySelector('main img[alt*="photo"]') ||
             document.querySelector('main img');
 
         if (imgEl && imgEl.src) {
@@ -123,37 +169,49 @@ function scrapePosts() {
 
             const text = textEl ? textEl.innerText.trim() : '';
 
-            const metaTextEls = article.querySelectorAll('span');
-
             let impressions = null;
             let reactions = null;
             let comments = null;
 
-            Array.from(metaTextEls).forEach(el => {
+            Array.from(article.querySelectorAll('span, button')).forEach(el => {
                 const t = el.innerText.trim();
                 if (!t) return;
 
-                const numberMatch = t.replace(/,/g, '').match(/^(\d+)\s/);
-                if (!numberMatch) return;
-                const num = parseInt(numberMatch[1], 10);
-
                 if (/impression/i.test(t)) {
-                    impressions = num;
+                    const value = parseLinkedinCount(t);
+                    if (value !== null) impressions = value;
                 } else if (/reaction/i.test(t) || /like/i.test(t)) {
-                    reactions = num;
+                    const value = parseLinkedinCount(t);
+                    if (value !== null) reactions = value;
                 } else if (/comment/i.test(t)) {
-                    comments = num;
+                    const value = parseLinkedinCount(t);
+                    if (value !== null) comments = value;
                 }
             });
 
-            const timeEl = article.querySelector('span.visually-hidden');
-            const postedAtText = timeEl ? timeEl.innerText.trim() : null;
+            const permalinkEl =
+                article.querySelector('a[href*="/feed/update/"]') ||
+                article.querySelector('a[href*="/posts/"]') ||
+                article.querySelector('a[href*="activity-"]') ||
+                article.querySelector('a[href*="activity"]');
 
-            const linkEl = article.querySelector('a[href*="activity"]');
-            const permalink = linkEl ? linkEl.href : window.location.href + '#post-' + index;
+            const permalink = permalinkEl
+                ? normalizeLinkedinUrl(permalinkEl.href)
+                : normalizeLinkedinUrl(window.location.href + '#post-' + index);
+
+            const externalIdMatch = permalink.match(/(urn:li:[^/?#]+|activity-\d+|ugcPost-\d+|share-\d+)/i);
+            const externalId = externalIdMatch ? externalIdMatch[1] : permalink;
+
+            const timeEl =
+                article.querySelector('time') ||
+                article.querySelector('span.visually-hidden');
+
+            const postedAtText = timeEl
+                ? (timeEl.getAttribute('datetime') || timeEl.innerText.trim())
+                : null;
 
             posts.push({
-                external_id: permalink,
+                external_id: externalId,
                 post_type: 'post',
                 content: text,
                 posted_at_human: postedAtText,
@@ -175,40 +233,50 @@ function scrapePosts() {
     return { data: posts };
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (!message || !message.type) {
-        return false;
-    }
-
-    const url = window.location.href;
-
-    if (message.type === 'SCRAPE_PROFILE') {
-        if (!isProfilePage(url)) {
-            sendResponse({ success: false, error: 'NOT_PROFILE_PAGE' });
-            return true;
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    try {
+        if (!message || !message.type) {
+            sendResponse({ success: false, error: 'Invalid message.' });
+            return;
         }
-        const result = scrapeProfile();
-        if (result.error) {
-            sendResponse({ success: false, error: result.error, message: result.message });
-        } else {
+
+        if (message.type === 'SCRAPE_PROFILE') {
+            if (!isProfilePage(window.location.href)) {
+                sendResponse({ success: false, error: 'Open a LinkedIn profile page first.' });
+                return;
+            }
+
+            const result = scrapeProfile();
+            if (result.error) {
+                sendResponse({ success: false, error: result.message || result.error });
+                return;
+            }
+
             sendResponse({ success: true, data: result.data });
+            return;
         }
-        return true;
-    }
 
-    if (message.type === 'SCRAPE_POSTS') {
-        if (!isActivityPage(url)) {
-            sendResponse({ success: false, error: 'NOT_ACTIVITY_PAGE' });
-            return true;
-        }
-        const result = scrapePosts();
-        if (result.error) {
-            sendResponse({ success: false, error: result.error, message: result.message });
-        } else {
+        if (message.type === 'SCRAPE_POSTS') {
+            if (!isActivityPage(window.location.href)) {
+                sendResponse({ success: false, error: 'Open recent activity page first.' });
+                return;
+            }
+
+            const result = scrapePosts();
+            if (result.error) {
+                sendResponse({ success: false, error: result.message || result.error });
+                return;
+            }
+
             sendResponse({ success: true, data: result.data });
+            return;
         }
-        return true;
+
+        sendResponse({ success: false, error: 'Unsupported message type.' });
+    } catch (e) {
+        console.warn('LinkInsight onMessage error', e);
+        sendResponse({ success: false, error: 'Unexpected content script error.' });
     }
 
-    return false;
+    return true;
 });
