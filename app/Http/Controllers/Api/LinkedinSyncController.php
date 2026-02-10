@@ -388,6 +388,7 @@ class LinkedinSyncController extends Controller
                 foreach ($data['posts'] as $p) {
                     $post = LinkedinPost::updateOrCreate(
                         [
+                            'linkedin_profile_id' => $profile->id,
                             'linkedin_post_id'    => $p['linkedin_post_id'],
                         ],
                         [
@@ -504,6 +505,7 @@ class LinkedinSyncController extends Controller
 
                 $post = LinkedinPost::updateOrCreate(
                     [
+                        'linkedin_profile_id' => $profile->id,
                         'linkedin_post_id'    => $postData['external_id'],
                     ],
                     [
@@ -572,9 +574,23 @@ class LinkedinSyncController extends Controller
 
         $str = (string) $value;
         $str = str_replace(',', '', $str);
+        $str = trim($str);
 
         if (str_ends_with($str, '+')) {
             $str = rtrim($str, '+');
+        }
+
+        if (preg_match('/^(\d+(?:\.\d+)?)([kmb])$/i', $str, $matches)) {
+            $value = (float) $matches[1];
+            $suffix = strtolower($matches[2]);
+            $multiplier = match ($suffix) {
+                'k' => 1000,
+                'm' => 1000000,
+                'b' => 1000000000,
+                default => 1,
+            };
+
+            return (int) round($value * $multiplier);
         }
 
         if (!is_numeric($str)) {
