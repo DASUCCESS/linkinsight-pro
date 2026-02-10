@@ -19,6 +19,7 @@
             </p>
             <div class="flex flex-wrap items-center gap-3">
                 <button type="button"
+                        id="btnConnectLinkedin"
                         class="px-4 py-2 rounded-full text-sm font-semibold shadow-xl cursor-pointer
                                bg-gradient-to-r from-indigo-500 to-sky-500 text-white
                                transition transform duration-200 hover:scale-[var(--hover-scale)]">
@@ -37,9 +38,7 @@
         @endphp
 
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-            {{-- Left: profile + KPIs + charts placeholder --}}
             <div class="xl:col-span-2 space-y-6">
-                {{-- Profile overview and KPIs --}}
                 <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
@@ -70,6 +69,7 @@
                             </div>
                         </div>
                         <button type="button"
+                                id="btnSyncNow"
                                 class="px-3 py-1.5 rounded-full text-xs font-semibold shadow-md cursor-pointer
                                        bg-slate-900 text-slate-50 border border-slate-700
                                        transition transform duration-200 hover:scale-[var(--hover-scale)]">
@@ -153,11 +153,10 @@
                                 </div>
                             </div>
                         </div>
-                            
+
                     </div>
                 </div>
 
-                {{-- Recent posts --}}
                 <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6">
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
@@ -208,7 +207,6 @@
                 </div>
             </div>
 
-            {{-- Right: recent sync jobs --}}
             <div class="space-y-6">
                 <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6">
                     <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50 mb-3">
@@ -279,6 +277,7 @@
         </div>
     @endif
 @endsection
+
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {

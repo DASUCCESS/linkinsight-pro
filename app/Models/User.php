@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -50,7 +51,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(LinkedinProfile::class);
     }
-    
+
     public function issueExtensionToken(): string
     {
         if ($this->extension_api_token) {

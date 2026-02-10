@@ -10,6 +10,7 @@
                 Connected profiles
             </h2>
             <button type="button"
+                    id="btnConnectNewProfile"
                     class="px-3 py-1.5 rounded-full text-xs font-semibold shadow-md cursor-pointer
                            bg-gradient-to-r from-indigo-500 to-sky-500 text-white
                            transition transform duration-200 hover:scale-[var(--hover-scale)]">

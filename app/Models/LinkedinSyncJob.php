@@ -15,6 +15,7 @@ class LinkedinSyncJob extends Model
         'source',
         'type',
         'status',
+        'items_count', 
         'error_message',
         'payload',
         'started_at',
@@ -25,6 +26,7 @@ class LinkedinSyncJob extends Model
         'payload'     => 'array',
         'started_at'  => 'datetime',
         'finished_at' => 'datetime',
+        'items_count' => 'integer',
     ];
 
     public function user()

@@ -1,95 +1,214 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>LinkInsight Pro – Options</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: #020617;
-            color: #e5e7eb;
-            margin: 0;
-            padding: 24px;
-        }
-        .card {
-            max-width: 480px;
-            margin: 0 auto;
-            background: #020617;
-            border-radius: 16px;
-            border: 1px solid #1e293b;
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.9);
-            padding: 20px 20px 16px;
-        }
-        h1 {
-            font-size: 16px;
-            margin: 0 0 4px;
-        }
-        p {
-            font-size: 13px;
-            color: #9ca3af;
-            margin-top: 0;
-            margin-bottom: 16px;
-        }
-        label {
-            display: block;
-            font-size: 11px;
-            margin-bottom: 4px;
-            color: #9ca3af;
-        }
-        input[type=text], input[type=password] {
-            width: 100%;
-            padding: 8px 10px;
-            font-size: 13px;
-            border-radius: 10px;
-            border: 1px solid #1e293b;
-            background: #020617;
-            color: #e5e7eb;
-            box-sizing: border-box;
-        }
-        input[type=text]:focus, input[type=password]:focus {
-            outline: none;
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.3);
-        }
-        button {
-            margin-top: 16px;
-            padding: 8px 16px;
-            font-size: 13px;
-            border-radius: 999px;
-            border: none;
-            cursor: pointer;
-            color: #ffffff;
-            background-image: linear-gradient(to right, #4f46e5, #0ea5e9);
-            box-shadow: 0 16px 30px rgba(15, 23, 42, 0.7);
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-        button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.9);
-        }
-        .status {
-            margin-top: 8px;
-            font-size: 11px;
-            color: #22c55e;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>LinkInsight Pro – Extension Settings</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #020617;
+      color: #e5e7eb;
+      margin: 0;
+      padding: 24px;
+    }
+
+    .card {
+      max-width: 520px;
+      margin: 0 auto;
+      background: radial-gradient(circle at top left, rgba(79, 70, 229, 0.14), #020617);
+      border-radius: 18px;
+      border: 1px solid #1e293b;
+      box-shadow: 0 26px 70px rgba(15, 23, 42, 0.95);
+      padding: 20px 20px 18px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .title-block { display: flex; flex-direction: column; }
+
+    .title-block h1 {
+      font-size: 16px;
+      margin: 0;
+      letter-spacing: 0.02em;
+    }
+
+    .title-block p {
+      font-size: 12px;
+      color: #9ca3af;
+      margin: 2px 0 0;
+    }
+
+    .field-group { margin-top: 14px; }
+
+    .field-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    label {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .hint {
+      font-size: 10px;
+      color: #6b7280;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 13px;
+      border-radius: 10px;
+      border: 1px solid #1e293b;
+      background: #020617;
+      color: #e5e7eb;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.3);
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    button {
+      flex: 1;
+      padding: 8px 14px;
+      font-size: 13px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      color: #ffffff;
+      background: #020617;
+      border: 1px solid #1e293b;
+      box-shadow: 0 16px 35px rgba(15, 23, 42, 0.9);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+
+    button.primary {
+      background-image: linear-gradient(to right, #4f46e5, #0ea5e9);
+      border-color: rgba(148, 163, 184, 0.4);
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 22px 48px rgba(15, 23, 42, 1);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 11px;
+      min-height: 16px;
+      color: #9ca3af;
+    }
+
+    .status.success { color: #4ade80; }
+    .status.error { color: #fca5a5; }
+
+    .divider {
+      height: 1px;
+      border-radius: 999px;
+      background: linear-gradient(to right, transparent, #1e293b, transparent);
+      margin: 16px 0 10px;
+    }
+
+    .section-caption {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .pill-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid #1e293b;
+      background: #020617;
+      font-size: 10px;
+      color: #9ca3af;
+    }
+
+    .pill.strong {
+      border-color: rgba(34, 197, 94, 0.4);
+      background: rgba(22, 163, 74, 0.12);
+      color: #bbf7d0;
+    }
+  </style>
 </head>
 <body>
 <div class="card">
-    <h1>LinkInsight Pro – API Configuration</h1>
-    <p>Set your backend API URL and personal API token. You get these from the LinkInsight Pro web app.</p>
+  <div class="header">
+    <div class="title-block">
+      <h1>LinkInsight Pro – Extension</h1>
+      <p>Connect your browser extension to your LinkInsight backend API.</p>
+    </div>
+  </div>
 
-    <label for="apiBaseUrl">API Base URL (no trailing slash)</label>
-    <input type="text" id="apiBaseUrl" placeholder="http://127.0.0.1:8000">
+  <div class="field-group">
+    <div class="field-label-row">
+      <label for="apiBaseUrl">API Base URL</label>
+      <span class="hint">No trailing slash</span>
+    </div>
+    <input type="text" id="apiBaseUrl" placeholder="http://127.0.0.1:8000" />
+  </div>
 
-    <label for="apiToken" style="margin-top: 10px;">API Token (optional manual override)</label>
-    <input type="password" id="apiToken" placeholder="Usually fetched automatically">
+  <div class="field-group">
+    <div class="field-label-row">
+      <label for="apiToken">API Token</label>
+      <span class="hint">Fetched from your app</span>
+    </div>
+    <input type="password" id="apiToken" placeholder="Optional manual override" />
+  </div>
 
-    <button id="saveBtn">Save settings</button>
-    <button id="fetchBtn" style="margin-left: 8px;">Fetch from app</button>
-    <div id="status" class="status"></div>
+  <div class="button-row">
+    <button id="saveBtn" class="primary">Save settings</button>
+    <button id="fetchBtn">Fetch from app</button>
+  </div>
 
+  <div id="status" class="status"></div>
+
+  <div class="divider"></div>
+
+  <div>
+    <div class="section-caption">How to use</div>
+    <div class="pill-row">
+      <div class="pill strong">1. Log into LinkInsight Pro in this browser</div>
+      <div class="pill">2. Open your app dashboard tab</div>
+      <div class="pill">3. Click “Fetch from app” here</div>
+    </div>
+  </div>
 </div>
 
 <script src="options.js"></script>
