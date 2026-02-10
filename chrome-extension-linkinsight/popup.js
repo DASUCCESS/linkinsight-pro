@@ -1,5 +1,3 @@
-// popup.js
-
 function getActiveTab(callback) {
   chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
     if (!tabs || !tabs.length) {
@@ -11,15 +9,23 @@ function getActiveTab(callback) {
 }
 
 function detectPageType(url) {
-  if (/^https:\/\/www\.linkedin\.com\/in\//.test(url)) {
-    if (/recent-activity/.test(url)) {
-      return 'Profile activity (posts)';
-    }
+  const clean = (url || '').split(/[?#]/)[0];
+
+  // Profile root: https://www.linkedin.com/in/<handle>/
+  if (/^https:\/\/www\.linkedin\.com\/in\/[^/]+\/?$/.test(clean)) {
     return 'Profile';
   }
-  if (/^https:\/\/www\.linkedin\.com\//.test(url)) {
+
+  // Any activity route: https://www.linkedin.com/in/<handle>/recent-activity/<category>/
+  // category examples: all, posts, comments, reactions, videos, images
+  if (/^https:\/\/www\.linkedin\.com\/in\/[^/]+\/recent-activity\/[^/]+\/?/.test(clean)) {
+    return 'Profile activity';
+  }
+
+  if (/^https:\/\/www\.linkedin\.com\//.test(clean)) {
     return 'LinkedIn page';
   }
+
   return 'Not LinkedIn';
 }
 
@@ -113,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Detect current tab + context
+  // Detect current tab + context (UPDATED enable/disable logic for "Profile activity")
   getActiveTab(tab => {
     if (!tab) {
       currentUrlText.textContent = 'No active tab';
@@ -131,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentPageType === 'Profile') {
       syncProfileBtn.disabled = false;
       syncPostsBtn.disabled = true;
-    } else if (currentPageType === 'Profile activity (posts)') {
+    } else if (currentPageType === 'Profile activity') {
       syncProfileBtn.disabled = true;
       syncPostsBtn.disabled = false;
     } else {
@@ -149,30 +155,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const type = detectPageType(url);
 
         if (type === 'Profile') {
-          // Already on profile, do nothing
           return;
         }
-        if (type === 'Profile activity (posts)') {
-          // Go back to profile root from activity URL
+        if (type === 'Profile activity') {
           const profileUrl = url.split('/detail/')[0].split('/recent-activity')[0];
           chrome.tabs.update(tab.id, { url: profileUrl });
           return;
         }
-        // Else: open LinkedIn feed
         chrome.tabs.update(tab.id, { url: 'https://www.linkedin.com/feed/' });
       });
     });
   }
 
+  // UPDATED Open activity button to your real routes
   if (openActivityBtn) {
     openActivityBtn.addEventListener('click', () => {
       getActiveTab(tab => {
         if (!tab) return;
-        const url = tab.url || '';
-        const profileMatch = url.match(/https:\/\/www\.linkedin\.com\/in\/[^/]+/);
+        const url = (tab.url || '').split(/[?#]/)[0];
+        const profileMatch = url.match(/https:\/\/www\.linkedin\.com\/in\/[^/]+\/?/);
         let baseProfileUrl = profileMatch ? profileMatch[0] : 'https://www.linkedin.com/in/';
         if (!baseProfileUrl.endsWith('/')) baseProfileUrl += '/';
-        const activityUrl = baseProfileUrl + 'detail/recent-activity/shares/';
+
+        const activityUrl = baseProfileUrl + 'recent-activity/all/';
         chrome.tabs.update(tab.id, { url: activityUrl });
       });
     });
@@ -233,7 +238,6 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           const profile = response.profile || {};
-          // Show summary in popup
           document.getElementById('profileName').innerText = profile.name || '';
           document.getElementById('profileHeadline').innerText = profile.headline || '';
           document.getElementById('profileLocation').innerText = profile.location || '';
@@ -266,24 +270,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ----- Sync posts -----
+  // ----- Sync posts/activity -----
   if (syncPostsBtn) {
     syncPostsBtn.addEventListener('click', () => {
-      setStatus('Reading posts from the current tab...', 'info');
+      setStatus('Reading activity from the current tab...', 'info');
       syncPostsBtn.disabled = true;
 
       getActiveTab(tab => {
         if (!tab) {
-          setStatus('No active tab. Open your Activity > Posts page first.', 'error');
+          setStatus('No active tab. Open your Activity page first.', 'error');
           syncPostsBtn.disabled = false;
           return;
         }
 
-        chrome.tabs.sendMessage(tab.id, { action: 'scrapePosts' }, response => {
+        // UPDATED: scrapePosts -> scrapeActivity
+        chrome.tabs.sendMessage(tab.id, { action: 'scrapeActivity' }, response => {
           if (chrome.runtime.lastError) {
             const msg = chrome.runtime.lastError.message || 'Unknown error.';
             setStatus(
-              'The extension could not read this tab. Refresh your Activity > Posts page, then try again. (' +
+              'The extension could not read this tab. Refresh your Activity page, then try again. (' +
                 msg +
                 ')',
               'error'
@@ -295,16 +300,16 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!response || !response.success) {
             const code = response && response.error;
             let friendly =
-              'Could not read your LinkedIn posts. Open your profile → Activity → Posts tab, then try again.';
+              'Could not read your LinkedIn activity. Open your profile → Activity page, then try again.';
             if (code === 'NOT_ACTIVITY_PAGE') {
               friendly =
-                'Open your LinkedIn profile → Activity → Posts tab (URL containing /recent-activity/), then click “Sync posts” again.';
+                'Open your LinkedIn profile → Activity (URL containing /recent-activity/), then click “Sync posts” again.';
             } else if (code === 'NO_POSTS') {
               friendly =
-                'No posts were detected on this page. Scroll down to load more posts, then click “Sync posts” again.';
+                'No items were detected on this page. Scroll down to load more, then click “Sync posts” again.';
             } else if (code === 'SCRAPE_ERROR') {
               friendly =
-                'LinkedIn did not load fully or changed layout. Refresh your Activity > Posts page, then try again.';
+                'LinkedIn did not load fully or changed layout. Refresh your Activity page, then try again.';
             }
             setStatus(friendly, 'error');
             syncPostsBtn.disabled = false;
@@ -314,19 +319,17 @@ document.addEventListener('DOMContentLoaded', () => {
           const posts = response.posts || [];
           if (!posts.length) {
             setStatus(
-              'No posts detected on this page. Scroll down to load more posts, then click “Sync posts” again.',
+              'No items detected on this page. Scroll down to load more, then click “Sync posts” again.',
               'error'
             );
             syncPostsBtn.disabled = false;
             return;
           }
 
-          // Update posts count in profile summary (if visible)
           if (profileSummaryDiv.style.display === 'block') {
             document.getElementById('profilePostsCount').innerText = posts.length;
           }
 
-          // Render a brief posts summary
           postsSummaryDiv.innerHTML = '';
           posts.forEach(post => {
             const item = document.createElement('div');
@@ -337,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 : post.content || '(no text)';
 
             item.innerHTML = `
-              <p><strong>${post.posted_at_human || 'Post'}:</strong> ${preview}</p>
+              <p><strong>${post.posted_at_human || 'Item'}:</strong> ${preview}</p>
               <p>
                 👍 ${post.reactions ?? 0}
                 &nbsp; 💬 ${post.comments ?? 0}
@@ -350,14 +353,16 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           postsSummaryDiv.style.display = 'block';
 
-          setStatus(`Collected ${posts.length} posts. Sending to LinkInsight Pro...`, 'info');
+          setStatus(`Collected ${posts.length} items. Sending to LinkInsight Pro...`, 'info');
 
-          postToApi('/api/linkedin/sync/posts', { posts })
+          // UPDATED: send category to backend
+          const activityCategory = response.activity_category || 'all';
+          postToApi('/api/linkedin/sync/posts', { posts, activity_category: activityCategory })
             .then(() => {
-              setStatus(`Posts synced successfully (${posts.length} posts).`, 'success');
+              setStatus(`Activity synced successfully (${posts.length} items).`, 'success');
             })
             .catch(err => {
-              setStatus('Posts sync failed: ' + err, 'error');
+              setStatus('Activity sync failed: ' + err, 'error');
             })
             .finally(() => {
               syncPostsBtn.disabled = false;

@@ -1,151 +1,48 @@
 function isProfilePage(url) {
-  return /^https:\/\/www\.linkedin\.com\/in\//.test(url);
+  return /^https:\/\/www\.linkedin\.com\/in\/[^/?#]+\/?$/.test(url.split(/[?#]/)[0]);
 }
 
-function isActivityPage(url) {
-  // works for ".../detail/recent-activity/" and ".../recent-activity/"
-  return /^https:\/\/www\.linkedin\.com\/in\/.+\/.*recent-activity/.test(url);
+function getActivityCategory(url) {
+  const clean = url.split(/[?#]/)[0];
+  const m = clean.match(/\/recent-activity\/([^/]+)\/?$/);
+  return m ? m[1].toLowerCase() : null; // all, comments, videos, images, reactions
 }
 
-<<<<<<< Updated upstream
-function parseLinkedinCount(value) {
-    if (value === null || value === undefined) {
-        return null;
-    }
-
-    const raw = String(value)
-        .replace(/,/g, '')
-        .replace(/\s+/g, '')
-        .toLowerCase();
-
-    if (!raw) {
-        return null;
-    }
-
-    const match = raw.match(/(\d+(?:\.\d+)?)([kmb])?\+?/i);
-    if (!match) {
-        return null;
-    }
-
-    const base = Number(match[1]);
-    if (Number.isNaN(base)) {
-        return null;
-    }
-
-    const suffix = (match[2] || '').toLowerCase();
-    const multiplier = suffix === 'k'
-        ? 1000
-        : suffix === 'm'
-            ? 1000000
-            : suffix === 'b'
-                ? 1000000000
-                : 1;
-
-    return Math.round(base * multiplier);
+function isAnyActivityPage(url) {
+  return /^https:\/\/www\.linkedin\.com\/in\/[^/]+\/recent-activity\/[^/]+\/?/.test(
+    url.split(/[?#]/)[0]
+  );
 }
 
-function normalizeLinkedinUrl(url) {
-    if (!url) {
-        return window.location.href;
-    }
-
-    try {
-        const parsed = new URL(url, window.location.origin);
-        parsed.search = '';
-        parsed.hash = '';
-        return parsed.toString().replace(/\/+$/, '');
-    } catch (e) {
-        return String(url).split('?')[0].split('#')[0].replace(/\/+$/, '');
-    }
+function safeText(el) {
+  return el ? (el.innerText || '').trim() : '';
 }
 
-function scrapeProfile() {
-    const result = {
-        linkedin_id: null,
-        public_url: normalizeLinkedinUrl(window.location.href),
-        name: null,
-        headline: null,
-        location: null,
-        connections: null,
-        followers: null,
-        profile_image_url: null
-    };
+function normalizeText(s) {
+  return (s || '').replace(/\s+/g, ' ').trim();
+}
 
-    try {
-        const urlMatch = window.location.pathname.match(/\/in\/([^/]+)/);
-        if (urlMatch) {
-            result.linkedin_id = urlMatch[1];
-        }
+function parseCountFromText(text) {
+  if (!text) return null;
+  const t = text.replace(/,/g, '').trim();
 
-        const canonicalEl = document.querySelector('link[rel="canonical"]');
-        if (canonicalEl && canonicalEl.href) {
-            const canonical = normalizeLinkedinUrl(canonicalEl.href);
-            if (/linkedin\.com\/in\//.test(canonical)) {
-                result.public_url = canonical;
-            }
-        }
+  // e.g. "500+ connections"
+  const plus = t.match(/(\d+)\+/);
+  if (plus) return parseInt(plus[1], 10);
 
-        const nameEl =
-            document.querySelector('.pv-text-details__left-panel h1') ||
-            document.querySelector('main h1') ||
-            document.querySelector('h1');
-        if (nameEl) {
-            result.name = nameEl.innerText.trim();
-        }
+  // e.g. "1.2K"
+  const km = t.match(/(\d+(?:\.\d+)?)([KMB])/i);
+  if (km) {
+    const n = parseFloat(km[1]);
+    const u = km[2].toUpperCase();
+    const mul = u === 'K' ? 1000 : u === 'M' ? 1000000 : 1000000000;
+    return Math.round(n * mul);
+  }
 
-        const headlineEl =
-            document.querySelector('.pv-text-details__left-panel .text-body-medium') ||
-            document.querySelector('.pv-text-details__left-panel span[dir="ltr"]') ||
-            document.querySelector('.pv-text-details__left-panel div.text-body-medium') ||
-            document.querySelector('section div.text-body-medium');
-        if (headlineEl) {
-            result.headline = headlineEl.innerText.trim();
-        }
+  const n = t.match(/(\d+)/);
+  return n ? parseInt(n[1], 10) : null;
+}
 
-        const locationCandidates = document.querySelectorAll(
-            '.pv-text-details__left-panel span.text-body-small, .pv-text-details__left-panel span.inline-block, main .text-body-small'
-        );
-
-        if (locationCandidates.length) {
-            const loc = Array.from(locationCandidates)
-                .map(e => e.innerText.trim())
-                .filter(t => t && !/followers|connections/i.test(t))[0];
-
-            if (loc) {
-                result.location = loc;
-            }
-        }
-
-        const statSpans = Array.from(document.querySelectorAll('main span, main li, main a'));
-
-        statSpans
-            .map(e => e.innerText.trim())
-            .filter(Boolean)
-            .forEach(t => {
-                if (/connections/i.test(t)) {
-                    const value = parseLinkedinCount(t);
-                    if (value !== null) {
-                        result.connections = value;
-                    }
-                } else if (/followers/i.test(t)) {
-                    const value = parseLinkedinCount(t);
-                    if (value !== null) {
-                        result.followers = value;
-                    }
-                }
-            });
-
-        const imgEl =
-            document.querySelector('.pv-top-card-profile-picture__image') ||
-            document.querySelector('img.pv-top-card-profile-picture__image') ||
-            document.querySelector('img.profile-photo-edit__preview') ||
-            document.querySelector('main img[alt*="photo"]') ||
-            document.querySelector('main img');
-
-        if (imgEl && imgEl.src) {
-            result.profile_image_url = imgEl.src;
-        }
-=======
 function scrapeProfileData() {
   const profile = {
     linkedin_id: '',
@@ -157,18 +54,15 @@ function scrapeProfileData() {
     connections_count: 0,
     followers_count: 0,
     profile_views: 0,
-    search_appearances: 0,
-    posts_count: 0 // will be updated from posts sync if needed
+    search_appearances: 0
   };
 
   try {
-    const cleanUrl = window.location.href.split(/[?#]/)[0];
+    const cleanUrl = window.location.href.split(/[?#]/)[0].replace(/\/+$/, '/');
     profile.public_url = cleanUrl;
 
     const idMatch = cleanUrl.match(/\/in\/([^/]+)/);
-    if (idMatch) {
-      profile.linkedin_id = idMatch[1];
-    }
+    if (idMatch) profile.linkedin_id = idMatch[1];
 
     // Name
     const nameEl =
@@ -176,9 +70,7 @@ function scrapeProfileData() {
       document.querySelector('.pv-text-details__left-panel h1') ||
       document.querySelector('main h1');
 
-    if (nameEl) {
-      profile.name = nameEl.innerText.trim();
-    }
+    profile.name = normalizeText(safeText(nameEl));
 
     // Headline
     const headlineEl =
@@ -186,63 +78,60 @@ function scrapeProfileData() {
       document.querySelector('div.text-body-medium.break-words') ||
       document.querySelector('section div.text-body-medium');
 
-    if (headlineEl) {
-      profile.headline = headlineEl.innerText.trim();
-    }
+    profile.headline = normalizeText(safeText(headlineEl));
 
     // Location
     const locEl =
-      document.querySelector(
-        '.pv-text-details__left-panel span.text-body-small.inline.t-black--light.break-words'
-      ) ||
-      document.querySelector('span.text-body-small.inline.t-black--light.break-words');
+      document.querySelector('.pv-text-details__left-panel span.text-body-small.inline.t-black--light.break-words') ||
+      document.querySelector('span.text-body-small.inline.t-black--light.break-words') ||
+      document.querySelector('span.text-body-small.inline.t-black--light');
 
-    if (locEl) {
-      profile.location = locEl.innerText.trim();
-    }
+    profile.location = normalizeText(safeText(locEl));
 
     // Profile image
     const imgEl =
       document.querySelector('.pv-top-card-profile-picture__image') ||
       document.querySelector('.pv-top-card__photo img') ||
-      document.querySelector('img.profile-photo-edit__preview');
+      document.querySelector('img.profile-photo-edit__preview') ||
+      document.querySelector('img.pv-top-card-profile-picture__image');
 
     if (imgEl) {
       profile.profile_image_url = imgEl.src || imgEl.getAttribute('src') || '';
     }
 
-    // Connections / followers
-    const statTextCandidates = Array.from(
+    // Connections / followers: use top card link list
+    const topStats = Array.from(
       document.querySelectorAll(
-        '.pv-top-card--list li, .pv-top-card--list-bullet li, section.pv-top-card span'
+        'a[data-field="topcard_connection"], a[data-field="topcard_followers"], .pv-top-card--list li, .pv-top-card--list-bullet li'
       )
     )
-      .map(el => el.innerText.trim())
+      .map(el => normalizeText(safeText(el)))
       .filter(Boolean);
 
-    statTextCandidates.forEach(text => {
-      const numMatch = text.replace(/,/g, '').match(/(\d+)\+?/);
-      if (!numMatch) return;
-      const value = parseInt(numMatch[1], 10);
+    topStats.forEach(text => {
+      const val = parseCountFromText(text);
+      if (val == null) return;
 
-      if (/connection/i.test(text)) {
-        profile.connections_count = Math.max(profile.connections_count, value);
-      } else if (/follower/i.test(text)) {
-        profile.followers_count = Math.max(profile.followers_count, value);
-      }
+      if (/connection/i.test(text)) profile.connections_count = Math.max(profile.connections_count, val);
+      if (/follower/i.test(text)) profile.followers_count = Math.max(profile.followers_count, val);
     });
 
-    // Profile views & search appearances (if visible on page)
-    const bodyText = document.body.innerText;
-    const viewsMatch = bodyText.match(/([\d,]+)\s+profile view/i);
-    if (viewsMatch) {
-      profile.profile_views = parseInt(viewsMatch[1].replace(/,/g, ''), 10) || 0;
+    // Fallback: scan visible text snippets
+    if (!profile.connections_count || !profile.followers_count) {
+      const bodyText = document.body ? document.body.innerText : '';
+      const conn = bodyText.match(/(\d[\d,\.KMB\+]+)\s+connections?/i);
+      const fol = bodyText.match(/(\d[\d,\.KMB\+]+)\s+followers?/i);
+      if (conn) profile.connections_count = parseCountFromText(conn[1]) || profile.connections_count;
+      if (fol) profile.followers_count = parseCountFromText(fol[1]) || profile.followers_count;
     }
 
-    const searchMatch = bodyText.match(/([\d,]+)\s+search appearance/i);
-    if (searchMatch) {
-      profile.search_appearances = parseInt(searchMatch[1].replace(/,/g, ''), 10) || 0;
-    }
+    // Profile views & search appearances: best effort (LinkedIn often hides these)
+    const bodyText = document.body ? document.body.innerText : '';
+    const viewsMatch = bodyText.match(/([\d,]+)\s+profile views?/i);
+    if (viewsMatch) profile.profile_views = parseInt(viewsMatch[1].replace(/,/g, ''), 10) || 0;
+
+    const searchMatch = bodyText.match(/([\d,]+)\s+search appearances?/i);
+    if (searchMatch) profile.search_appearances = parseInt(searchMatch[1].replace(/,/g, ''), 10) || 0;
   } catch (err) {
     console.error('LinkInsight profile scraping error:', err);
   }
@@ -250,130 +139,216 @@ function scrapeProfileData() {
   return profile;
 }
 
-async function scrapePostsData() {
-  // Auto-scroll to load more posts
+async function autoScroll(maxScrolls = 8, delayMs = 1000) {
   let lastHeight = document.body.scrollHeight;
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < maxScrolls; i++) {
     window.scrollTo(0, document.body.scrollHeight);
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, delayMs));
     const newHeight = document.body.scrollHeight;
     if (newHeight === lastHeight) break;
     lastHeight = newHeight;
   }
+}
 
-  // Expand "see more" buttons
-  document.querySelectorAll('button').forEach(btn => {
-    if (btn.innerText && btn.innerText.trim().toLowerCase().includes('see more')) {
+function clickSeeMore() {
+  const buttons = Array.from(document.querySelectorAll('button'));
+  buttons.forEach(btn => {
+    const t = (btn.innerText || '').trim().toLowerCase();
+    if (t === 'see more' || t.includes('see more')) {
       btn.click();
     }
   });
+}
 
-  const posts = [];
+function detectMediaType(postEl) {
+  const hasVideo = !!postEl.querySelector('video, .update-components-video, .feed-shared-video');
+  const hasImg = !!postEl.querySelector('img[alt], .feed-shared-image, .update-components-image');
+  if (hasVideo && hasImg) return 'mixed';
+  if (hasVideo) return 'video';
+  if (hasImg) return 'image';
+  return 'text';
+}
 
-  // LinkedIn activity posts are often in regions with data-urn containing "urn:li:activity"
-  const postElements = document.querySelectorAll(
-    'div[role="region"][data-urn*="urn:li:activity:"]'
+function extractExternalId(postEl) {
+  const urn = postEl.getAttribute('data-urn') || postEl.getAttribute('data-id') || '';
+  if (urn) return urn;
+
+  // fallback: try to locate any element carrying an urn
+  const any = postEl.querySelector('[data-urn*="urn:li:"]');
+  return any ? any.getAttribute('data-urn') : '';
+}
+
+function extractPermalink(postEl, externalId) {
+  // Try explicit links first
+  const link =
+    postEl.querySelector('a[href*="/feed/update/"]') ||
+    postEl.querySelector('a[href*="/posts/"]') ||
+    postEl.querySelector('a[href*="/activity/"]');
+
+  if (link && link.href) return link.href.split(/[?#]/)[0];
+
+  // Fallback build from URN
+  if (externalId && externalId.startsWith('urn:')) {
+    return `https://www.linkedin.com/feed/update/${encodeURIComponent(externalId)}/`;
+  }
+
+  return window.location.href.split(/[?#]/)[0];
+}
+
+function extractRelativeTime(postEl) {
+  // LinkedIn often keeps full time in visually-hidden spans
+  const hidden =
+    postEl.querySelector('.visually-hidden') ||
+    postEl.querySelector('span.visually-hidden');
+
+  const hiddenText = normalizeText(safeText(hidden));
+  if (hiddenText && /ago$/i.test(hiddenText)) return hiddenText;
+
+  // fallback: try common containers
+  const timeEl =
+    postEl.querySelector('span.update-components-actor__sub-description') ||
+    postEl.querySelector('.update-components-actor__sub-description') ||
+    postEl.querySelector('time');
+
+  return normalizeText(safeText(timeEl));
+}
+
+function extractCounts(postEl) {
+  let reactions = 0;
+  let comments = 0;
+  let reposts = 0;
+  let impressions = null;
+
+  // Reactions
+  const reactionsBtn =
+    postEl.querySelector('button[aria-label*="reaction"]') ||
+    postEl.querySelector('span[aria-label*="reaction"]');
+
+  if (reactionsBtn) {
+    const label = reactionsBtn.getAttribute('aria-label') || '';
+    const m = label.match(/([\d,]+)\s+reaction/i);
+    if (m) reactions = parseInt(m[1].replace(/,/g, ''), 10) || 0;
+  }
+
+  // Comments
+  const commentsBtn =
+    postEl.querySelector('button[aria-label*="comment"]') ||
+    postEl.querySelector('span[aria-label*="comment"]');
+
+  if (commentsBtn) {
+    const label = commentsBtn.getAttribute('aria-label') || '';
+    const m = label.match(/([\d,]+)\s+comment/i);
+    if (m) comments = parseInt(m[1].replace(/,/g, ''), 10) || 0;
+  }
+
+  // Reposts
+  const repostsBtn =
+    postEl.querySelector('button[aria-label*="repost"]') ||
+    postEl.querySelector('span[aria-label*="repost"]');
+
+  if (repostsBtn) {
+    const label = repostsBtn.getAttribute('aria-label') || '';
+    const m = label.match(/([\d,]+)\s+repost/i);
+    if (m) reposts = parseInt(m[1].replace(/,/g, ''), 10) || 0;
+  }
+
+  // Impressions/views sometimes show as "123 views" in spans
+  const spans = postEl.querySelectorAll('span[aria-hidden="true"], span');
+  Array.from(spans).some(sp => {
+    const t = (sp.innerText || '').trim().toLowerCase();
+    if (!t) return false;
+    if (t.includes('view') || t.includes('impression')) {
+      const m = sp.innerText.match(/([\d,]+)\s+(view|views|impression|impressions)/i);
+      if (m) {
+        impressions = parseInt(m[1].replace(/,/g, ''), 10) || 0;
+        return true;
+      }
+    }
+    return false;
+  });
+
+  return { reactions, comments, reposts, impressions };
+}
+
+function extractContent(postEl) {
+  const contentContainer =
+    postEl.querySelector('.feed-shared-inline-show-more-text') ||
+    postEl.querySelector('.update-components-text') ||
+    postEl.querySelector('.feed-shared-update-v2__commentary') ||
+    postEl.querySelector('[data-test-id="main-feed-activity-card__commentary"]');
+
+  return normalizeText(safeText(contentContainer));
+}
+
+function detectPostTypeFromCategory(activityCategory, postEl) {
+  if (!activityCategory) return 'post';
+
+  if (activityCategory === 'comments') return 'comment';
+  if (activityCategory === 'reactions') return 'reaction';
+  if (activityCategory === 'videos') return 'video';
+  if (activityCategory === 'images') return 'image';
+
+  // all: infer from media
+  const media = detectMediaType(postEl);
+  if (media === 'video') return 'video';
+  if (media === 'image') return 'image';
+  return 'post';
+}
+
+async function scrapeActivityData() {
+  await autoScroll(10, 1200);
+  clickSeeMore();
+
+  const activityCategory = getActivityCategory(window.location.href);
+  const items = [];
+
+  // Activity feed containers typically include data-urn activities
+  const candidates = document.querySelectorAll(
+    '[data-urn*="urn:li:activity:"], div[role="region"][data-urn*="urn:li:activity:"]'
   );
 
-  postElements.forEach(postEl => {
-    // Content text
-    let contentText = '';
-    const contentContainer =
-      postEl.querySelector('.feed-shared-inline-show-more-text') ||
-      postEl.querySelector('.update-components-text') ||
-      postEl.querySelector('.feed-shared-update-v2__commentary');
+  const seen = new Set();
 
-    if (contentContainer) {
-      contentText = contentContainer.innerText.trim();
+  candidates.forEach(postEl => {
+    const externalId = extractExternalId(postEl);
+    if (!externalId || seen.has(externalId)) return;
+    seen.add(externalId);
+
+    const content = extractContent(postEl);
+    const postedAtHuman = extractRelativeTime(postEl);
+    const mediaType = detectMediaType(postEl);
+    const postType = detectPostTypeFromCategory(activityCategory, postEl);
+
+    const { reactions, comments, reposts, impressions } = extractCounts(postEl);
+
+    const permalink = extractPermalink(postEl, externalId);
+
+    // For comments/reactions pages, often there is a “target” post link. Best-effort.
+    let targetPermalink = null;
+    if (activityCategory === 'comments' || activityCategory === 'reactions') {
+      const targetLink =
+        postEl.querySelector('a[href*="/feed/update/"]') ||
+        postEl.querySelector('a[href*="/posts/"]') ||
+        postEl.querySelector('a[href*="/activity/"]');
+      if (targetLink && targetLink.href) targetPermalink = targetLink.href.split(/[?#]/)[0];
     }
 
-    // Timestamp (prefer visually-hidden full text)
-    let timeText = '';
-    const subDesc = postEl.querySelector('.update-components-actor__sub-description');
-    if (subDesc) {
-      const hiddenTime = subDesc.querySelector('.visually-hidden');
-      if (hiddenTime && /ago$/i.test(hiddenTime.innerText.trim())) {
-        timeText = hiddenTime.innerText.trim();
-      } else {
-        timeText = subDesc.innerText.trim();
-      }
-    }
-
-    // Reactions count
-    let reactionsCount = 0;
-    const reactionsBtn = postEl.querySelector('button[aria-label*="reaction"]');
-    if (reactionsBtn) {
-      const match = reactionsBtn
-        .getAttribute('aria-label')
-        .match(/([\d,]+)\s+reaction/i);
-      if (match) {
-        reactionsCount = parseInt(match[1].replace(/,/g, ''), 10) || 0;
-      }
-    }
-
-    // Comments count
-    let commentsCount = 0;
-    const commentsBtn = postEl.querySelector('button[aria-label*="comment"]');
-    if (commentsBtn) {
-      const match = commentsBtn
-        .getAttribute('aria-label')
-        .match(/([\d,]+)\s+comment/i);
-      if (match) {
-        commentsCount = parseInt(match[1].replace(/,/g, ''), 10) || 0;
-      }
-    }
-
-    // Reposts count
-    let repostsCount = 0;
-    const repostsBtn = postEl.querySelector('button[aria-label*="repost"]');
-    if (repostsBtn) {
-      const match = repostsBtn
-        .getAttribute('aria-label')
-        .match(/([\d,]+)\s+repost/i);
-      if (match) {
-        repostsCount = parseInt(match[1].replace(/,/g, ''), 10) || 0;
-      }
-    }
-
-    // Impressions / views (if visible inline)
-    let impressionsCount = null;
-    const spans = postEl.querySelectorAll('span[aria-hidden="true"]');
-    Array.from(spans).forEach(sp => {
-      const t = sp.innerText.trim().toLowerCase();
-      if (t.includes('view')) {
-        const m = sp.innerText.match(/([\d,]+)\s+view/i);
-        if (m) {
-          impressionsCount = parseInt(m[1].replace(/,/g, ''), 10) || 0;
-        }
-      }
-    });
-
-    // URN ID -> external_id / permalink
-    let externalId = '';
-    const urnAttr = postEl.getAttribute('data-urn'); // "urn:li:activity:XXXXXXXX"
-    if (urnAttr) {
-      externalId = urnAttr;
-    }
-
-    const permalink =
-      externalId && externalId.startsWith('urn:')
-        ? `https://www.linkedin.com/feed/update/${encodeURIComponent(externalId)}/`
-        : window.location.href.split(/[?#]/)[0];
-
-    posts.push({
+    items.push({
       external_id: externalId,
-      post_type: 'post',
-      content: contentText,
-      posted_at_human: timeText,
-      impressions: impressionsCount,
-      reactions: reactionsCount,
-      comments: commentsCount,
-      permalink: permalink,
-      reposts: repostsCount
+      post_type: postType,
+      media_type: mediaType,
+      content,
+      posted_at_human: postedAtHuman,
+      impressions,
+      reactions,
+      comments,
+      reposts,
+      permalink,
+      target_permalink: targetPermalink
     });
   });
 
-  return posts;
+  return { activity_category: activityCategory || 'all', posts: items };
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -381,7 +356,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   const url = window.location.href;
 
-  // Profile scraping
   if (msg.action === 'scrapeProfile') {
     if (!isProfilePage(url)) {
       sendResponse({ success: false, error: 'NOT_PROFILE_PAGE' });
@@ -391,7 +365,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     try {
       const profile = scrapeProfileData();
       sendResponse({ success: true, profile });
->>>>>>> Stashed changes
     } catch (e) {
       console.error('Profile scraping error:', e);
       sendResponse({ success: false, error: 'SCRAPE_ERROR' });
@@ -399,163 +372,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
-  // Posts scraping (async)
-  if (msg.action === 'scrapePosts') {
-    if (!isActivityPage(url)) {
+  if (msg.action === 'scrapeActivity') {
+    if (!isAnyActivityPage(url)) {
       sendResponse({ success: false, error: 'NOT_ACTIVITY_PAGE' });
       return true;
     }
 
-<<<<<<< Updated upstream
-    if (!result.linkedin_id) {
-        return { error: 'NO_PROFILE_ID', message: 'Could not detect LinkedIn profile ID.' };
-    }
-
-    return { data: result };
-}
-
-function scrapePosts() {
-    const posts = [];
-
-    try {
-        const articleNodes = document.querySelectorAll('article');
-
-        articleNodes.forEach((article, index) => {
-            const textEl =
-                article.querySelector('div.feed-shared-update-v2__commentary') ||
-                article.querySelector('span.break-words') ||
-                article.querySelector('div[dir="ltr"]');
-
-            const text = textEl ? textEl.innerText.trim() : '';
-
-            let impressions = null;
-            let reactions = null;
-            let comments = null;
-
-            Array.from(article.querySelectorAll('span, button')).forEach(el => {
-                const t = el.innerText.trim();
-                if (!t) return;
-
-                if (/impression/i.test(t)) {
-                    const value = parseLinkedinCount(t);
-                    if (value !== null) impressions = value;
-                } else if (/reaction/i.test(t) || /like/i.test(t)) {
-                    const value = parseLinkedinCount(t);
-                    if (value !== null) reactions = value;
-                } else if (/comment/i.test(t)) {
-                    const value = parseLinkedinCount(t);
-                    if (value !== null) comments = value;
-                }
-            });
-
-            const permalinkEl =
-                article.querySelector('a[href*="/feed/update/"]') ||
-                article.querySelector('a[href*="/posts/"]') ||
-                article.querySelector('a[href*="activity-"]') ||
-                article.querySelector('a[href*="activity"]');
-
-            const permalink = permalinkEl
-                ? normalizeLinkedinUrl(permalinkEl.href)
-                : normalizeLinkedinUrl(window.location.href + '#post-' + index);
-
-            const externalIdMatch = permalink.match(/(urn:li:[^/?#]+|activity-\d+|ugcPost-\d+|share-\d+)/i);
-            const externalId = externalIdMatch ? externalIdMatch[1] : permalink;
-
-            const timeEl =
-                article.querySelector('time') ||
-                article.querySelector('span.visually-hidden');
-
-            const postedAtText = timeEl
-                ? (timeEl.getAttribute('datetime') || timeEl.innerText.trim())
-                : null;
-
-            posts.push({
-                external_id: externalId,
-                post_type: 'post',
-                content: text,
-                posted_at_human: postedAtText,
-                impressions,
-                reactions,
-                comments,
-                permalink
-            });
-        });
-    } catch (e) {
-        console.warn('LinkInsight posts scraping error', e);
-        return { error: 'SCRAPE_ERROR', message: 'Error while reading posts DOM.' };
-    }
-
-    if (!posts.length) {
-        return { error: 'NO_POSTS', message: 'No posts found on this page.' };
-    }
-
-    return { data: posts };
-}
-
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    try {
-        if (!message || !message.type) {
-            sendResponse({ success: false, error: 'Invalid message.' });
-            return;
-        }
-
-        if (message.type === 'SCRAPE_PROFILE') {
-            if (!isProfilePage(window.location.href)) {
-                sendResponse({ success: false, error: 'Open a LinkedIn profile page first.' });
-                return;
-            }
-
-            const result = scrapeProfile();
-            if (result.error) {
-                sendResponse({ success: false, error: result.message || result.error });
-                return;
-            }
-
-            sendResponse({ success: true, data: result.data });
-            return;
-        }
-
-        if (message.type === 'SCRAPE_POSTS') {
-            if (!isActivityPage(window.location.href)) {
-                sendResponse({ success: false, error: 'Open recent activity page first.' });
-                return;
-            }
-
-            const result = scrapePosts();
-            if (result.error) {
-                sendResponse({ success: false, error: result.message || result.error });
-                return;
-            }
-
-            sendResponse({ success: true, data: result.data });
-            return;
-        }
-
-        sendResponse({ success: false, error: 'Unsupported message type.' });
-    } catch (e) {
-        console.warn('LinkInsight onMessage error', e);
-        sendResponse({ success: false, error: 'Unexpected content script error.' });
-    }
-
-    return true;
-=======
     (async () => {
       try {
-        const posts = await scrapePostsData();
-        if (!posts.length) {
+        const data = await scrapeActivityData();
+        if (!data.posts.length) {
           sendResponse({ success: false, error: 'NO_POSTS' });
         } else {
-          sendResponse({ success: true, posts });
+          sendResponse({ success: true, ...data });
         }
       } catch (e) {
-        console.error('Posts scraping error:', e);
+        console.error('Activity scraping error:', e);
         sendResponse({ success: false, error: 'SCRAPE_ERROR' });
       }
     })();
 
-    return true; // keep channel open for async
+    return true;
   }
 
   return false;
->>>>>>> Stashed changes
 });

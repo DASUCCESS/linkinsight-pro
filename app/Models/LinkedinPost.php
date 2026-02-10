@@ -13,17 +13,20 @@ class LinkedinPost extends Model
         'linkedin_profile_id',
         'linkedin_post_id',
         'permalink',
+        'target_permalink',
         'posted_at',
         'post_type',
+        'activity_category',
+        'media_type',
         'is_reshare',
         'is_sponsored',
         'content_excerpt',
     ];
 
     protected $casts = [
-        'posted_at'   => 'datetime',
-        'is_reshare'  => 'boolean',
-        'is_sponsored'=> 'boolean',
+        'posted_at'    => 'datetime',
+        'is_reshare'   => 'boolean',
+        'is_sponsored' => 'boolean',
     ];
 
     public function profile()
