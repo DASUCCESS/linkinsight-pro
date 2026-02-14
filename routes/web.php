@@ -14,6 +14,11 @@ use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\LinkedinProfileController;
 use App\Http\Controllers\User\AnalyticsController as UserAnalyticsController;
+
+use App\Http\Controllers\User\LinkedinAudienceController;
+use App\Http\Controllers\User\LinkedinConnectionsController;
+use App\Http\Controllers\User\LinkedinSyncJobsController;
+
 use App\Http\Controllers\Extension\TokenController;
 
 /*
@@ -110,14 +115,39 @@ Route::get('/extension/api-token', TokenController::class)
  */
 Route::middleware('auth')->group(function () {
 
+    // User dashboard
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
 
-    Route::get('/linkedin/profiles', [LinkedinProfileController::class, 'index'])
-        ->name('user.linkedin.profiles.index');
+    Route::prefix('user/linkedin')->name('user.linkedin.')->group(function () {
 
-    Route::get('/linkedin/analytics', [UserAnalyticsController::class, 'index'])
-        ->name('user.linkedin.analytics.index');
+        // Profiles
+        Route::get('/profiles', [LinkedinProfileController::class, 'index'])->name('profiles.index');
 
+        // User analytics (profile metrics + posts)
+        Route::get('/analytics', [UserAnalyticsController::class, 'index'])->name('analytics.index');
+
+        // Audience insights (match layout route name)
+        Route::get('/audience/insights', [LinkedinAudienceController::class, 'insights'])
+            ->name('audience_insights.index');
+
+        // Demographics (match layout route name)
+        Route::get('/audience/demographics', [LinkedinAudienceController::class, 'demographics'])
+            ->name('demographics.index');
+
+        // Creator metrics (match layout route name)
+        Route::get('/audience/creator-metrics', [LinkedinAudienceController::class, 'creatorMetrics'])
+            ->name('creator_metrics.index');
+
+        // Connections directory
+        Route::get('/connections', [LinkedinConnectionsController::class, 'index'])
+            ->name('connections.index');
+
+        // Sync jobs history
+        Route::get('/sync-jobs', [LinkedinSyncJobsController::class, 'index'])
+            ->name('sync_jobs.index');
+    });
+
+    // Profile routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

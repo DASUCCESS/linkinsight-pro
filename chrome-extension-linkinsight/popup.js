@@ -8,29 +8,112 @@ function getActiveTab(callback) {
   });
 }
 
+/**
+ * Keep query string, remove hash only.
+ * Needed because LinkedIn demographic pages rely on ?metricType=...
+ */
+function stripHash(url) {
+  return (url || '').split('#')[0];
+}
+
+/**
+ * Remove both query and hash.
+ * Useful when you want a stable "page" URL without params.
+ */
+function stripQueryAndHash(url) {
+  return (url || '').split(/[?#]/)[0];
+}
+
+/**
+ * Normalize LinkedIn URLs while preserving query string (default).
+ * - forces https
+ * - normalizes host to www.linkedin.com
+ * - removes trailing slashes on pathname (except root "/")
+ */
+function normalizeLinkedInUrl(url, { keepQuery = true } = {}) {
+  let raw = (url || '').trim();
+  if (!raw) return '';
+
+  raw = raw.replace(/^http:\/\//i, 'https://');
+
+  try {
+    const u = new URL(raw);
+
+    const host = u.hostname.toLowerCase();
+    if (host === 'm.linkedin.com' || host === 'mobile.linkedin.com' || host === 'linkedin.com') {
+      u.hostname = 'www.linkedin.com';
+    }
+
+    u.hash = '';
+
+    if (u.pathname && u.pathname !== '/') {
+      u.pathname = u.pathname.replace(/\/+$/, '');
+    }
+
+    if (!keepQuery) u.search = '';
+
+    return u.toString();
+  } catch {
+    // fallback (best-effort)
+    let out = stripHash(raw);
+    out = out.replace(/^https:\/\/(m|mobile)\.linkedin\.com/i, 'https://www.linkedin.com');
+    out = out.replace(/^https:\/\/linkedin\.com/i, 'https://www.linkedin.com');
+    if (!keepQuery) out = stripQueryAndHash(out);
+    out = out.replace(/\/+$/, '');
+    return out;
+  }
+}
+
+function getPathOnly(url) {
+  const u = normalizeLinkedInUrl(url, { keepQuery: true });
+  try {
+    const x = new URL(u);
+    return `${x.origin}${x.pathname}`.replace(/\/+$/, '');
+  } catch {
+    return stripQueryAndHash(u).replace(/\/+$/, '');
+  }
+}
+
+function getSearchParams(url) {
+  const u = normalizeLinkedInUrl(url, { keepQuery: true });
+  try {
+    return new URL(u).searchParams;
+  } catch {
+    return new URLSearchParams((u.split('?')[1] || '').split('#')[0]);
+  }
+}
+
 function detectPageType(url) {
-  const clean = (url || '').split(/[?#]/)[0];
+  const u = normalizeLinkedInUrl(url, { keepQuery: true });
+  const pathOnly = getPathOnly(u);
 
-  // Profile root: https://www.linkedin.com/in/<handle>/
-  if (/^https:\/\/www\.linkedin\.com\/in\/[^/]+\/?$/.test(clean)) {
-    return 'Profile';
+  // Profile root: https://www.linkedin.com/in/<id>/
+  if (/^https:\/\/www\.linkedin\.com\/in\/[^/]+\/?$/.test(pathOnly + '/')) return 'Profile';
+
+  // Any profile activity route: /in/<id>/recent-activity/<category>/
+  if (/^https:\/\/www\.linkedin\.com\/in\/[^/]+\/recent-activity\/[^/]+\/?$/.test(pathOnly + '/')) return 'Profile activity';
+
+  // Creator analytics
+  if (/^https:\/\/www\.linkedin\.com\/analytics\/creator\/content\/?$/.test(pathOnly)) return 'Creator content analytics';
+  if (/^https:\/\/www\.linkedin\.com\/analytics\/creator\/audience\/?$/.test(pathOnly)) return 'Creator audience analytics';
+
+  // Demographic detail (followers)
+  if (/^https:\/\/www\.linkedin\.com\/analytics\/demographic-detail\/urn:li:fsd_profile:profile\/?$/.test(pathOnly)) {
+    const sp = getSearchParams(u);
+    const metricType = (sp.get('metricType') || '').toUpperCase();
+    if (metricType === 'MEMBER_FOLLOWERS') return 'Followers demographics';
+    return 'Demographic detail';
   }
 
-  // Any activity route: https://www.linkedin.com/in/<handle>/recent-activity/<category>/
-  // category examples: all, posts, comments, reactions, videos, images
-  if (/^https:\/\/www\.linkedin\.com\/in\/[^/]+\/recent-activity\/[^/]+\/?/.test(clean)) {
-    return 'Profile activity';
-  }
+  // Connections list
+  if (/^https:\/\/www\.linkedin\.com\/mynetwork\/invite-connect\/connections\/?$/.test(pathOnly)) return 'Connections';
 
-  if (/^https:\/\/www\.linkedin\.com\//.test(clean)) {
-    return 'LinkedIn page';
-  }
+  if (/^https:\/\/www\.linkedin\.com\//.test(u)) return 'LinkedIn page';
 
   return 'Not LinkedIn';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // UI references
   const currentUrlText = document.getElementById('currentUrlText');
   const pageTypeBadge = document.getElementById('pageTypeBadge');
   const apiStatusText = document.getElementById('apiStatusText');
@@ -38,12 +121,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const openProfileBtn = document.getElementById('openProfileBtn');
   const openActivityBtn = document.getElementById('openActivityBtn');
+  const openCreatorContentBtn = document.getElementById('openCreatorContentBtn');
+  const openCreatorAudienceBtn = document.getElementById('openCreatorAudienceBtn');
+  const openDemographicsBtn = document.getElementById('openDemographicsBtn');
+  const openConnectionsBtn = document.getElementById('openConnectionsBtn');
+
   const syncProfileBtn = document.getElementById('syncProfileBtn');
   const syncPostsBtn = document.getElementById('syncPostsBtn');
+  const syncCreatorContentBtn = document.getElementById('syncCreatorContentBtn');
+  const syncCreatorAudienceBtn = document.getElementById('syncCreatorAudienceBtn');
+  const syncDemographicsBtn = document.getElementById('syncDemographicsBtn');
+  const syncConnectionsBtn = document.getElementById('syncConnectionsBtn');
+
   const openOptionsLink = document.getElementById('openOptions');
 
   const profileSummaryDiv = document.getElementById('profileSummary');
   const postsSummaryDiv = document.getElementById('postsSummary');
+  const extraSummaryDiv = document.getElementById('extraSummary');
 
   let currentPageType = 'Unknown';
 
@@ -97,8 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
               data = null;
             }
             if (!resp.ok) {
-              const msg =
-                (data && (data.message || data.error)) || `API error (status ${resp.status})`;
+              const msg = (data && (data.message || data.error)) || `API error (status ${resp.status})`;
               reject(msg);
             } else {
               resolve(data || {});
@@ -109,7 +202,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Initial API config status
+  function ensureProfileUrlSavedFromTab(tabUrl) {
+    const raw = stripQueryAndHash(tabUrl);
+    const match = raw.match(/https:\/\/www\.linkedin\.com\/in\/[^/]+\/?/);
+    if (match) {
+      let profileUrl = match[0];
+      if (!profileUrl.endsWith('/')) profileUrl += '/';
+      chrome.storage.sync.set({ li_profile_url: profileUrl });
+      return profileUrl;
+    }
+    return null;
+  }
+
+  function getSavedProfileUrl(cb) {
+    chrome.storage.sync.get(['li_profile_url'], cfg => {
+      const u = (cfg.li_profile_url || '').trim();
+      cb(u);
+    });
+  }
+
+  function getProfileUrlForPayload(tabUrl, cb) {
+    // Priority:
+    // 1) saved profile URL
+    // 2) derive from current tab URL if it's /in/<id>/...
+    // 3) null
+    getSavedProfileUrl(saved => {
+      if (saved) {
+        cb(saved);
+        return;
+      }
+      const derived = ensureProfileUrlSavedFromTab(tabUrl || '');
+      cb(derived || null);
+    });
+  }
+
+  // Initial API status
   chrome.storage.sync.get(['li_api_base_url', 'li_api_token'], cfg => {
     if (cfg.li_api_base_url && cfg.li_api_token) {
       apiStatusText.textContent = 'API: ready';
@@ -119,83 +246,134 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Detect current tab + context (UPDATED enable/disable logic for "Profile activity")
+  function setButtonStatesByPageType(pt) {
+    syncProfileBtn.disabled = true;
+    syncPostsBtn.disabled = true;
+    syncCreatorContentBtn.disabled = true;
+    syncCreatorAudienceBtn.disabled = true;
+    syncDemographicsBtn.disabled = true;
+    syncConnectionsBtn.disabled = true;
+
+    if (pt === 'Profile') syncProfileBtn.disabled = false;
+    if (pt === 'Profile activity') syncPostsBtn.disabled = false;
+    if (pt === 'Creator content analytics') syncCreatorContentBtn.disabled = false;
+    if (pt === 'Creator audience analytics') syncCreatorAudienceBtn.disabled = false;
+    if (pt === 'Followers demographics' || pt === 'Demographic detail') syncDemographicsBtn.disabled = false;
+    if (pt === 'Connections') syncConnectionsBtn.disabled = false;
+  }
+
+  // Detect current tab
   getActiveTab(tab => {
     if (!tab) {
       currentUrlText.textContent = 'No active tab';
       pageTypeBadge.textContent = 'No tab';
-      syncProfileBtn.disabled = true;
-      syncPostsBtn.disabled = true;
+      setButtonStatesByPageType('None');
       return;
     }
 
     const url = tab.url || '';
     currentUrlText.textContent = url;
+
     currentPageType = detectPageType(url);
     pageTypeBadge.textContent = currentPageType;
 
-    if (currentPageType === 'Profile') {
-      syncProfileBtn.disabled = false;
-      syncPostsBtn.disabled = true;
-    } else if (currentPageType === 'Profile activity') {
-      syncProfileBtn.disabled = true;
-      syncPostsBtn.disabled = false;
-    } else {
-      syncProfileBtn.disabled = true;
-      syncPostsBtn.disabled = true;
-    }
+    // opportunistic save profile url when possible
+    ensureProfileUrlSavedFromTab(url);
+
+    setButtonStatesByPageType(currentPageType);
   });
 
-  // Open LinkedIn / Activity buttons
+  // Open options
+  if (openOptionsLink) {
+    openOptionsLink.addEventListener('click', e => {
+      e.preventDefault();
+      if (chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage();
+      else window.open(chrome.runtime.getURL('options.html'));
+    });
+  }
+
+  // Open profile
   if (openProfileBtn) {
     openProfileBtn.addEventListener('click', () => {
-      getActiveTab(tab => {
-        if (!tab) return;
-        const url = tab.url || '';
-        const type = detectPageType(url);
-
-        if (type === 'Profile') {
-          return;
-        }
-        if (type === 'Profile activity') {
-          const profileUrl = url.split('/detail/')[0].split('/recent-activity')[0];
-          chrome.tabs.update(tab.id, { url: profileUrl });
-          return;
-        }
-        chrome.tabs.update(tab.id, { url: 'https://www.linkedin.com/feed/' });
+      getSavedProfileUrl(profileUrl => {
+        const targetUrl = profileUrl || 'https://www.linkedin.com/in/';
+        getActiveTab(tab => {
+          if (!tab) chrome.tabs.create({ url: targetUrl });
+          else chrome.tabs.update(tab.id, { url: targetUrl });
+        });
       });
     });
   }
 
-  // UPDATED Open activity button to your real routes
+  // Open activity
   if (openActivityBtn) {
     openActivityBtn.addEventListener('click', () => {
       getActiveTab(tab => {
         if (!tab) return;
-        const url = (tab.url || '').split(/[?#]/)[0];
-        const profileMatch = url.match(/https:\/\/www\.linkedin\.com\/in\/[^/]+\/?/);
-        let baseProfileUrl = profileMatch ? profileMatch[0] : 'https://www.linkedin.com/in/';
-        if (!baseProfileUrl.endsWith('/')) baseProfileUrl += '/';
-
-        const activityUrl = baseProfileUrl + 'recent-activity/all/';
+        const profileUrl = ensureProfileUrlSavedFromTab(tab.url || '');
+        const base = profileUrl || 'https://www.linkedin.com/in/';
+        const activityUrl = base.endsWith('/') ? base + 'recent-activity/all/' : base + '/recent-activity/all/';
         chrome.tabs.update(tab.id, { url: activityUrl });
       });
     });
   }
 
-  // Open options / API settings
-  if (openOptionsLink) {
-    openOptionsLink.addEventListener('click', e => {
-      e.preventDefault();
-      if (chrome.runtime.openOptionsPage) {
-        chrome.runtime.openOptionsPage();
-      } else {
-        window.open(chrome.runtime.getURL('options.html'));
-      }
+  // Open creator content analytics
+  if (openCreatorContentBtn) {
+    openCreatorContentBtn.addEventListener('click', () => {
+      const targetUrl = 'https://www.linkedin.com/analytics/creator/content/';
+      getActiveTab(tab => {
+        if (!tab) chrome.tabs.create({ url: targetUrl });
+        else chrome.tabs.update(tab.id, { url: targetUrl });
+      });
     });
   }
 
-  // ----- Sync profile -----
+  // Open creator audience analytics
+  if (openCreatorAudienceBtn) {
+    openCreatorAudienceBtn.addEventListener('click', () => {
+      const targetUrl = 'https://www.linkedin.com/analytics/creator/audience/';
+      getActiveTab(tab => {
+        if (!tab) chrome.tabs.create({ url: targetUrl });
+        else chrome.tabs.update(tab.id, { url: targetUrl });
+      });
+    });
+  }
+
+  // Open followers demographics detail
+  if (openDemographicsBtn) {
+    openDemographicsBtn.addEventListener('click', () => {
+      const targetUrl =
+        'https://www.linkedin.com/analytics/demographic-detail/urn:li:fsd_profile:profile/?metricType=MEMBER_FOLLOWERS';
+      getActiveTab(tab => {
+        if (!tab) chrome.tabs.create({ url: targetUrl });
+        else chrome.tabs.update(tab.id, { url: targetUrl });
+      });
+    });
+  }
+
+  // Open connections
+  if (openConnectionsBtn) {
+    openConnectionsBtn.addEventListener('click', () => {
+      const targetUrl = 'https://www.linkedin.com/mynetwork/invite-connect/connections/';
+      getActiveTab(tab => {
+        if (!tab) chrome.tabs.create({ url: targetUrl });
+        else chrome.tabs.update(tab.id, { url: targetUrl });
+      });
+    });
+  }
+
+  function showExtraSummary(lines) {
+    extraSummaryDiv.innerHTML = '';
+    (lines || []).forEach(t => {
+      const p = document.createElement('p');
+      p.textContent = t;
+      extraSummaryDiv.appendChild(p);
+    });
+    extraSummaryDiv.style.display = 'block';
+  }
+
+  // Sync profile
   if (syncProfileBtn) {
     syncProfileBtn.addEventListener('click', () => {
       setStatus('Reading profile from the current tab...', 'info');
@@ -208,30 +386,20 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
+        ensureProfileUrlSavedFromTab(tab.url || '');
+
         chrome.tabs.sendMessage(tab.id, { action: 'scrapeProfile' }, response => {
           if (chrome.runtime.lastError) {
-            const msg = chrome.runtime.lastError.message || 'Unknown error.';
-            setStatus(
-              'Could not read this tab. Make sure a LinkedIn profile page is open, then try again. (' +
-                msg +
-                ')',
-              'error'
-            );
+            setStatus('Could not read this tab. Refresh the page and try again.', 'error');
             syncProfileBtn.disabled = false;
             return;
           }
 
           if (!response || !response.success) {
             const code = response && response.error;
-            let friendly =
-              'Could not read your LinkedIn profile. Open your profile (URL like https://www.linkedin.com/in/your-handle) and try again.';
-            if (code === 'NOT_PROFILE_PAGE') {
-              friendly =
-                'Open your LinkedIn public profile page (URL starting with https://www.linkedin.com/in/...) in the active tab, then click “Sync profile” again.';
-            } else if (code === 'SCRAPE_ERROR') {
-              friendly =
-                'LinkedIn did not load fully or changed layout. Refresh your profile page, then try “Sync profile” again.';
-            }
+            let friendly = 'Could not read your LinkedIn profile. Open your profile page and try again.';
+            if (code === 'NOT_PROFILE_PAGE') friendly = 'Open your LinkedIn profile (linkedin.com/in/...) then try again.';
+            if (code === 'SCRAPE_ERROR') friendly = 'LinkedIn changed layout or did not load fully. Refresh and try again.';
             setStatus(friendly, 'error');
             syncProfileBtn.disabled = false;
             return;
@@ -241,27 +409,17 @@ document.addEventListener('DOMContentLoaded', () => {
           document.getElementById('profileName').innerText = profile.name || '';
           document.getElementById('profileHeadline').innerText = profile.headline || '';
           document.getElementById('profileLocation').innerText = profile.location || '';
-          document.getElementById('profileConnections').innerText =
-            profile.connections_count ?? '0';
-          document.getElementById('profileFollowers').innerText =
-            profile.followers_count ?? '0';
-          document.getElementById('profileViews').innerText =
-            profile.profile_views ?? '0';
-          document.getElementById('profileSearchAppearances').innerText =
-            profile.search_appearances ?? '0';
-          document.getElementById('profilePostsCount').innerText =
-            profile.posts_count ?? '0';
+          document.getElementById('profileConnections').innerText = profile.connections_count ?? '0';
+          document.getElementById('profileFollowers').innerText = profile.followers_count ?? '0';
+          document.getElementById('profileViews').innerText = profile.profile_views ?? '0';
+          document.getElementById('profileSearchAppearances').innerText = profile.search_appearances ?? '0';
           profileSummaryDiv.style.display = 'block';
 
           setStatus('Sending profile to LinkInsight Pro...', 'info');
 
           postToApi('/api/linkedin/sync/profile', profile)
-            .then(() => {
-              setStatus('Profile synced successfully.', 'success');
-            })
-            .catch(err => {
-              setStatus('Profile sync failed: ' + err, 'error');
-            })
+            .then(() => setStatus('Profile synced successfully.', 'success'))
+            .catch(err => setStatus('Profile sync failed: ' + err, 'error'))
             .finally(() => {
               syncProfileBtn.disabled = false;
             });
@@ -270,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ----- Sync posts/activity -----
+  // Sync posts/activity
   if (syncPostsBtn) {
     syncPostsBtn.addEventListener('click', () => {
       setStatus('Reading activity from the current tab...', 'info');
@@ -283,34 +441,19 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        // UPDATED: scrapePosts -> scrapeActivity
         chrome.tabs.sendMessage(tab.id, { action: 'scrapeActivity' }, response => {
           if (chrome.runtime.lastError) {
-            const msg = chrome.runtime.lastError.message || 'Unknown error.';
-            setStatus(
-              'The extension could not read this tab. Refresh your Activity page, then try again. (' +
-                msg +
-                ')',
-              'error'
-            );
+            setStatus('The extension could not read this tab. Refresh and try again.', 'error');
             syncPostsBtn.disabled = false;
             return;
           }
 
           if (!response || !response.success) {
             const code = response && response.error;
-            let friendly =
-              'Could not read your LinkedIn activity. Open your profile → Activity page, then try again.';
-            if (code === 'NOT_ACTIVITY_PAGE') {
-              friendly =
-                'Open your LinkedIn profile → Activity (URL containing /recent-activity/), then click “Sync posts” again.';
-            } else if (code === 'NO_POSTS') {
-              friendly =
-                'No items were detected on this page. Scroll down to load more, then click “Sync posts” again.';
-            } else if (code === 'SCRAPE_ERROR') {
-              friendly =
-                'LinkedIn did not load fully or changed layout. Refresh your Activity page, then try again.';
-            }
+            let friendly = 'Could not read your LinkedIn activity. Open your profile → Activity page and try again.';
+            if (code === 'NOT_ACTIVITY_PAGE') friendly = 'Open a /recent-activity/ page then try again.';
+            if (code === 'NO_POSTS') friendly = 'No items were detected. Scroll to load, then try again.';
+            if (code === 'SCRAPE_ERROR') friendly = 'LinkedIn changed layout or did not load fully. Refresh and try again.';
             setStatus(friendly, 'error');
             syncPostsBtn.disabled = false;
             return;
@@ -318,35 +461,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
           const posts = response.posts || [];
           if (!posts.length) {
-            setStatus(
-              'No items detected on this page. Scroll down to load more, then click “Sync posts” again.',
-              'error'
-            );
+            setStatus('No items detected. Scroll to load more, then try again.', 'error');
             syncPostsBtn.disabled = false;
             return;
           }
 
-          if (profileSummaryDiv.style.display === 'block') {
-            document.getElementById('profilePostsCount').innerText = posts.length;
-          }
-
           postsSummaryDiv.innerHTML = '';
-          posts.forEach(post => {
+          posts.slice(0, 10).forEach(post => {
             const item = document.createElement('div');
             item.className = 'postSummaryItem';
-            const preview =
-              post.content && post.content.length > 140
-                ? post.content.slice(0, 140) + '…'
-                : post.content || '(no text)';
-
+            const preview = post.content && post.content.length > 140 ? post.content.slice(0, 140) + '…' : post.content || '(no text)';
             item.innerHTML = `
               <p><strong>${post.posted_at_human || 'Item'}:</strong> ${preview}</p>
-              <p>
-                👍 ${post.reactions ?? 0}
-                &nbsp; 💬 ${post.comments ?? 0}
-                ${post.reposts != null ? `&nbsp; 🔁 ${post.reposts}` : ''}
-                ${post.impressions != null ? `&nbsp; 👁️ ${post.impressions}` : ''}
-              </p>
+              <p>👍 ${post.reactions ?? 0} &nbsp; 💬 ${post.comments ?? 0} &nbsp; 🔁 ${post.reposts ?? 0} ${post.impressions != null ? `&nbsp; 👁️ ${post.impressions}` : ''}</p>
               <hr />
             `;
             postsSummaryDiv.appendChild(item);
@@ -355,18 +482,232 @@ document.addEventListener('DOMContentLoaded', () => {
 
           setStatus(`Collected ${posts.length} items. Sending to LinkInsight Pro...`, 'info');
 
-          // UPDATED: send category to backend
           const activityCategory = response.activity_category || 'all';
-          postToApi('/api/linkedin/sync/posts', { posts, activity_category: activityCategory })
-            .then(() => {
-              setStatus(`Activity synced successfully (${posts.length} items).`, 'success');
-            })
-            .catch(err => {
-              setStatus('Activity sync failed: ' + err, 'error');
-            })
+          postToApi('/api/linkedin/sync/posts', {
+            posts,
+            activity_category: activityCategory,
+            public_url: response.public_url || null
+          })
+            .then(() => setStatus(`Activity synced successfully (${posts.length} items).`, 'success'))
+            .catch(err => setStatus('Activity sync failed: ' + err, 'error'))
             .finally(() => {
               syncPostsBtn.disabled = false;
             });
+        });
+      });
+    });
+  }
+
+  // Sync creator content analytics -> /linkedin/sync/posts
+  if (syncCreatorContentBtn) {
+    syncCreatorContentBtn.addEventListener('click', () => {
+      setStatus('Reading creator content analytics from this tab...', 'info');
+      syncCreatorContentBtn.disabled = true;
+
+      getActiveTab(tab => {
+        if (!tab) {
+          setStatus('No active tab. Open Creator content analytics first.', 'error');
+          syncCreatorContentBtn.disabled = false;
+          return;
+        }
+
+        chrome.tabs.sendMessage(tab.id, { action: 'scrapeCreatorContent' }, response => {
+          if (chrome.runtime.lastError) {
+            setStatus('Could not read this tab. Refresh and try again.', 'error');
+            syncCreatorContentBtn.disabled = false;
+            return;
+          }
+
+          if (!response || !response.success) {
+            const code = response && response.error;
+            let friendly = 'Could not read creator content analytics. Refresh the page and try again.';
+            if (code === 'NOT_CREATOR_CONTENT_PAGE') friendly = 'Open https://www.linkedin.com/analytics/creator/content/ then try again.';
+            if (code === 'NO_DATA') friendly = 'No post rows were detected. Scroll a bit and try again.';
+            setStatus(friendly, 'error');
+            syncCreatorContentBtn.disabled = false;
+            return;
+          }
+
+          const payload = response.payload || {};
+          const posts = payload.posts || [];
+
+          showExtraSummary([`Detected rows: ${posts.length}`, `Metric date: ${payload.metric_date || '(auto)'}`]);
+
+          getProfileUrlForPayload(tab.url || '', publicUrl => {
+            setStatus(`Sending ${posts.length} post metrics to LinkInsight Pro...`, 'info');
+
+            postToApi('/api/linkedin/sync/posts', {
+              public_url: publicUrl,
+              metric_date: payload.metric_date || null,
+              posts
+            })
+              .then(() => setStatus(`Creator content synced (${posts.length} rows).`, 'success'))
+              .catch(err => setStatus('Creator content sync failed: ' + err, 'error'))
+              .finally(() => {
+                syncCreatorContentBtn.disabled = false;
+              });
+          });
+        });
+      });
+    });
+  }
+
+  // Sync creator audience analytics -> /linkedin/sync/creator-audience
+  if (syncCreatorAudienceBtn) {
+    syncCreatorAudienceBtn.addEventListener('click', () => {
+      setStatus('Reading creator audience analytics from this tab...', 'info');
+      syncCreatorAudienceBtn.disabled = true;
+
+      getActiveTab(tab => {
+        if (!tab) {
+          setStatus('No active tab. Open Creator audience analytics first.', 'error');
+          syncCreatorAudienceBtn.disabled = false;
+          return;
+        }
+
+        chrome.tabs.sendMessage(tab.id, { action: 'scrapeCreatorAudience' }, response => {
+          if (chrome.runtime.lastError) {
+            setStatus('Could not read this tab. Refresh and try again.', 'error');
+            syncCreatorAudienceBtn.disabled = false;
+            return;
+          }
+
+          if (!response || !response.success) {
+            const code = response && response.error;
+            let friendly = 'Could not read creator audience analytics. Refresh and try again.';
+            if (code === 'NOT_CREATOR_AUDIENCE_PAGE') friendly = 'Open https://www.linkedin.com/analytics/creator/audience/ then try again.';
+            if (code === 'NO_DATA') friendly = 'No audience metrics were detected. Scroll a bit and try again.';
+            setStatus(friendly, 'error');
+            syncCreatorAudienceBtn.disabled = false;
+            return;
+          }
+
+          const payload = response.payload || {};
+          const metricDate = payload.metrics?.metric_date || null;
+          const keysCount = payload.metrics?.data ? Object.keys(payload.metrics.data).length : 0;
+
+          showExtraSummary([`Metric date: ${metricDate || '(auto)'}`, `Captured keys: ${keysCount}`]);
+
+          getProfileUrlForPayload(tab.url || '', publicUrl => {
+            setStatus('Sending creator audience metrics to LinkInsight Pro...', 'info');
+
+            postToApi('/api/linkedin/sync/creator-audience', {
+              public_url: publicUrl,
+              metrics: payload.metrics || { metric_date: metricDate, data: {} }
+            })
+              .then(() => setStatus('Creator audience synced successfully.', 'success'))
+              .catch(err => setStatus('Creator audience sync failed: ' + err, 'error'))
+              .finally(() => {
+                syncCreatorAudienceBtn.disabled = false;
+              });
+          });
+        });
+      });
+    });
+  }
+
+  // Sync followers demographics -> /linkedin/sync/audience-demographics
+  if (syncDemographicsBtn) {
+    syncDemographicsBtn.addEventListener('click', () => {
+      setStatus('Reading followers demographics from this tab...', 'info');
+      syncDemographicsBtn.disabled = true;
+
+      getActiveTab(tab => {
+        if (!tab) {
+          setStatus('No active tab. Open the demographics page first.', 'error');
+          syncDemographicsBtn.disabled = false;
+          return;
+        }
+
+        chrome.tabs.sendMessage(tab.id, { action: 'scrapeFollowersDemographics' }, response => {
+          if (chrome.runtime.lastError) {
+            setStatus('Could not read this tab. Refresh and try again.', 'error');
+            syncDemographicsBtn.disabled = false;
+            return;
+          }
+
+          if (!response || !response.success) {
+            const code = response && response.error;
+            let friendly = 'Could not read demographics. Refresh and try again.';
+            if (code === 'NOT_DEMOGRAPHICS_PAGE') friendly = 'Open the demographic-detail page with metricType=MEMBER_FOLLOWERS, then try again.';
+            if (code === 'NO_DATA') friendly = 'No demographics blocks detected. Scroll a bit and try again.';
+            setStatus(friendly, 'error');
+            syncDemographicsBtn.disabled = false;
+            return;
+          }
+
+          const payload = response.payload || {};
+          const cats = payload.demographics ? Object.keys(payload.demographics) : [];
+
+          showExtraSummary([`Snapshot date: ${payload.snapshot_date}`, `Categories: ${cats.join(', ') || '(none)'}`]);
+
+          getProfileUrlForPayload(tab.url || '', publicUrl => {
+            setStatus('Sending demographics to LinkInsight Pro...', 'info');
+
+            postToApi('/api/linkedin/sync/audience-demographics', {
+              public_url: publicUrl,
+              snapshot_date: payload.snapshot_date,
+              followers_count: payload.followers_count || 0,
+              demographics: payload.demographics || {}
+            })
+              .then(() => setStatus('Demographics synced successfully.', 'success'))
+              .catch(err => setStatus('Demographics sync failed: ' + err, 'error'))
+              .finally(() => {
+                syncDemographicsBtn.disabled = false;
+              });
+          });
+        });
+      });
+    });
+  }
+
+  // Sync connections -> /linkedin/sync/connections
+  if (syncConnectionsBtn) {
+    syncConnectionsBtn.addEventListener('click', () => {
+      setStatus('Reading connections from this tab...', 'info');
+      syncConnectionsBtn.disabled = true;
+
+      getActiveTab(tab => {
+        if (!tab) {
+          setStatus('No active tab. Open your connections page first.', 'error');
+          syncConnectionsBtn.disabled = false;
+          return;
+        }
+
+        chrome.tabs.sendMessage(tab.id, { action: 'scrapeConnections' }, response => {
+          if (chrome.runtime.lastError) {
+            setStatus('Could not read this tab. Refresh and try again.', 'error');
+            syncConnectionsBtn.disabled = false;
+            return;
+          }
+
+          if (!response || !response.success) {
+            const code = response && response.error;
+            let friendly = 'Could not read connections. Refresh and try again.';
+            if (code === 'NOT_CONNECTIONS_PAGE') friendly = 'Open https://www.linkedin.com/mynetwork/invite-connect/connections/ then try again.';
+            if (code === 'NO_DATA') friendly = 'No connections detected. Scroll to load more, then try again.';
+            setStatus(friendly, 'error');
+            syncConnectionsBtn.disabled = false;
+            return;
+          }
+
+          const payload = response.payload || {};
+          const count = payload.connections ? payload.connections.length : 0;
+          showExtraSummary([`Detected connections: ${count}`]);
+
+          getProfileUrlForPayload(tab.url || '', publicUrl => {
+            setStatus(`Sending ${count} connections to LinkInsight Pro...`, 'info');
+
+            postToApi('/api/linkedin/sync/connections', {
+              public_url: publicUrl,
+              connections: payload.connections || []
+            })
+              .then(() => setStatus(`Connections synced successfully (${count}).`, 'success'))
+              .catch(err => setStatus('Connections sync failed: ' + err, 'error'))
+              .finally(() => {
+                syncConnectionsBtn.disabled = false;
+              });
+          });
         });
       });
     });

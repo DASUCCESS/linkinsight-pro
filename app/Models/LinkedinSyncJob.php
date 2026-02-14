@@ -15,7 +15,7 @@ class LinkedinSyncJob extends Model
         'source',
         'type',
         'status',
-        'items_count', 
+        'items_count',
         'error_message',
         'payload',
         'started_at',

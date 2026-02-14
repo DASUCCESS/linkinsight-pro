@@ -24,11 +24,13 @@ class User extends Authenticatable implements MustVerifyEmail
         'status',
         'avatar_path',
         'is_admin',
+        'extension_api_token',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'extension_api_token',
     ];
 
     protected $casts = [
@@ -55,12 +57,12 @@ class User extends Authenticatable implements MustVerifyEmail
     public function linkedinPosts()
     {
         return $this->hasManyThrough(
-            LinkedinPost::class,       
-            LinkedinProfile::class,    
-            'user_id',                
-            'linkedin_profile_id',     
-            'id',                      // Local key on users table
-            'id'                       // Local key on LinkedinProfile table
+            LinkedinPost::class,
+            LinkedinProfile::class,
+            'user_id',
+            'linkedin_profile_id',
+            'id',
+            'id'
         );
     }
 

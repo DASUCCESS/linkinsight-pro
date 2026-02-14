@@ -1,11 +1,39 @@
 @extends('user.layout')
 
 @section('page_title', 'Dashboard')
-@section('page_subtitle', 'Quick overview of your LinkedIn performance and sync activity.')
+@section('page_subtitle', 'Quick overview of your LinkedIn performance, audience and sync activity.')
 
 @section('content')
     @php
-        $status = $summary['status'] ?? 'empty';
+        use Illuminate\Support\Str;
+        use Illuminate\Support\Carbon;
+        use Illuminate\Support\Facades\Route;
+
+        $status              = $summary['status'] ?? 'empty';
+
+        $profile             = $summary['profile'] ?? [];
+        $times               = $summary['timeseries'] ?? [];
+        $posts               = $summary['recent_posts'] ?? [];
+        $audienceInsights    = $summary['audience_insights'] ?? null;
+        $audienceDemographics= $summary['audience_demographics'] ?? null;
+        $creatorAudience     = $summary['creator_audience'] ?? null;
+        $connectionsSample   = $summary['connections_sample'] ?? [];
+
+        $hasAudienceData = !empty($audienceInsights) || !empty($audienceDemographics) || !empty($creatorAudience);
+
+        $insightDate = data_get($audienceInsights, 'snapshot_date');
+        $demoDate    = data_get($audienceDemographics, 'snapshot_date');
+        $creatorDate = data_get($creatorAudience, 'snapshot_date');
+
+        $topLocations  = data_get($audienceInsights, 'top_locations', []);
+        $topIndustries = data_get($audienceInsights, 'top_industries', []);
+        $topJobTitles  = data_get($audienceInsights, 'top_job_titles', []);
+        $topSources    = data_get($audienceInsights, 'engagement_sources', []);
+
+        $demoList           = data_get($audienceDemographics, 'demographics', []);
+        $demoFollowersCount = data_get($audienceDemographics, 'followers_count');
+
+        $creatorMetrics = data_get($creatorAudience, 'metrics', []);
     @endphp
 
     @if($status === 'empty')
@@ -17,6 +45,7 @@
                 You have not connected any LinkedIn profile yet. Install the browser extension or use the API
                 to send your profile and post metrics, and we will start showing analytics here.
             </p>
+
             <div class="flex flex-wrap items-center gap-3">
                 <button type="button"
                         id="btnConnectLinkedin"
@@ -26,31 +55,79 @@
                     Connect LinkedIn
                 </button>
                 <p class="text-xs text-slate-500 dark:text-slate-400">
-                    This button will later open the extension / connection flow.
+                    This button will later open the extension or connection flow.
                 </p>
             </div>
         </div>
     @else
-        @php
-            $profile  = $summary['profile'] ?? [];
-            $times    = $summary['timeseries'] ?? [];
-            $posts    = $summary['recent_posts'] ?? [];
-        @endphp
+        {{-- Quick navigation --}}
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5 mb-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
+                        Quick navigation
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        Open full pages for detailed synced data.
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap gap-2 text-xs">
+                    @if(Route::has('user.linkedin.audience_insights.index'))
+                        <a href="{{ route('user.linkedin.audience_insights.index') }}"
+                           class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 hover:scale-[var(--hover-scale)] transition">
+                            Audience Insights
+                        </a>
+                    @endif
+
+                    @if(Route::has('user.linkedin.demographics.index'))
+                        <a href="{{ route('user.linkedin.demographics.index') }}"
+                           class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 hover:scale-[var(--hover-scale)] transition">
+                            Demographics
+                        </a>
+                    @endif
+
+                    @if(Route::has('user.linkedin.creator_metrics.index'))
+                        <a href="{{ route('user.linkedin.creator_metrics.index') }}"
+                           class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 hover:scale-[var(--hover-scale)] transition">
+                            Creator Metrics
+                        </a>
+                    @endif
+
+                    @if(Route::has('user.linkedin.connections.index'))
+                        <a href="{{ route('user.linkedin.connections.index') }}"
+                           class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 hover:scale-[var(--hover-scale)] transition">
+                            Connections
+                        </a>
+                    @endif
+
+                    @if(Route::has('user.linkedin.sync_jobs.index'))
+                        <a href="{{ route('user.linkedin.sync_jobs.index') }}"
+                           class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer bg-slate-900 text-slate-50 border border-slate-700 hover:scale-[var(--hover-scale)] transition">
+                            Sync Jobs
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </div>
 
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+            {{-- Left: Performance --}}
             <div class="xl:col-span-2 space-y-6">
+                {{-- Profile summary --}}
                 <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6">
-                    <div class="flex items-center justify-between mb-4">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                         <div class="flex items-center gap-3">
                             @if(!empty($profile['profile_image_url']))
                                 <img src="{{ $profile['profile_image_url'] }}"
-                                     alt="{{ $profile['name'] }}"
+                                     alt="{{ $profile['name'] ?? 'LinkedIn' }}"
                                      class="h-11 w-11 rounded-full object-cover border border-slate-200 dark:border-slate-700">
                             @else
                                 <div class="h-11 w-11 rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-sm font-semibold text-white shadow">
                                     {{ strtoupper(substr($profile['name'] ?? 'LI', 0, 2)) }}
                                 </div>
                             @endif
+
                             <div>
                                 <div class="text-sm font-semibold text-slate-800 dark:text-slate-50">
                                     {{ $profile['name'] ?? 'LinkedIn profile' }}
@@ -68,15 +145,29 @@
                                 @endif
                             </div>
                         </div>
-                        <button type="button"
-                                id="btnSyncNow"
-                                class="px-3 py-1.5 rounded-full text-xs font-semibold shadow-md cursor-pointer
-                                       bg-slate-900 text-slate-50 border border-slate-700
-                                       transition transform duration-200 hover:scale-[var(--hover-scale)]">
-                            Sync now
-                        </button>
+
+                        <div class="flex items-center gap-2">
+                            <button type="button"
+                                    id="btnSyncNow"
+                                    class="px-3 py-1.5 rounded-full text-xs font-semibold shadow-md cursor-pointer
+                                           bg-slate-900 text-slate-50 border border-slate-700
+                                           transition transform duration-200 hover:scale-[var(--hover-scale)]">
+                                Sync now
+                            </button>
+
+                            @if(Route::has('user.linkedin.analytics.index'))
+                                <a href="{{ route('user.linkedin.analytics.index') }}"
+                                   class="px-3 py-1.5 rounded-full text-xs font-semibold shadow-md cursor-pointer
+                                          border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900
+                                          text-slate-700 dark:text-slate-100
+                                          transition transform duration-200 hover:scale-[var(--hover-scale)]">
+                                    Open analytics
+                                </a>
+                            @endif
+                        </div>
                     </div>
 
+                    {{-- Metric cards --}}
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div class="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 shadow">
                             <div class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
@@ -108,7 +199,7 @@
 
                         <div class="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 shadow">
                             <div class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
-                                Profile views 30d
+                                Profile views (range)
                             </div>
                             <div class="text-xl font-semibold text-slate-900 dark:text-slate-50">
                                 {{ number_format($profile['views_total'] ?? 0) }}
@@ -117,7 +208,7 @@
 
                         <div class="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 shadow">
                             <div class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
-                                Search appearances 30d
+                                Search appearances (range)
                             </div>
                             <div class="text-xl font-semibold text-slate-900 dark:text-slate-50">
                                 {{ number_format($profile['search_total'] ?? 0) }}
@@ -125,13 +216,14 @@
                         </div>
                     </div>
 
+                    {{-- Charts --}}
                     <div class="mt-6">
                         <div class="flex items-center justify-between mb-3">
                             <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
                                 Trends last 30 days
                             </h3>
                             <p class="text-[11px] text-slate-500 dark:text-slate-400">
-                                Based on your profile metrics.
+                                Based on profile metrics.
                             </p>
                         </div>
 
@@ -144,6 +236,7 @@
                                     <canvas id="connectionsFollowersChart"></canvas>
                                 </div>
                             </div>
+
                             <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4">
                                 <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
                                     Profile views vs search appearances
@@ -153,17 +246,17 @@
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
 
+                {{-- Recent posts performance --}}
                 <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6">
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
                             Recent posts performance
                         </h3>
                         <p class="text-[11px] text-slate-500 dark:text-slate-400">
-                            Based on your latest synced content.
+                            Latest synced content snapshot.
                         </p>
                     </div>
 
@@ -174,20 +267,23 @@
                     @else
                         <div class="space-y-3 text-xs">
                             @foreach($posts as $post)
+                                @php
+                                    $postedAt = !empty($post['posted_at']) ? Carbon::parse($post['posted_at']) : null;
+                                @endphp
                                 <div class="rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 hover:shadow-lg transition transform hover:scale-[var(--hover-scale)] cursor-pointer">
                                     <div class="flex items-center justify-between mb-1.5">
                                         <div class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                                             {{ ucfirst($post['post_type'] ?? 'post') }}
                                         </div>
                                         <div class="text-[11px] text-slate-400 dark:text-slate-500">
-                                            {{ \Illuminate\Support\Carbon::parse($post['posted_at'])->diffForHumans() }}
+                                            {{ $postedAt ? $postedAt->diffForHumans() : 'n/a' }}
                                         </div>
                                     </div>
-                                    @if(!empty($post['content']))
-                                        <div class="text-[13px] text-slate-800 dark:text-slate-100 line-clamp-2 mb-2">
-                                            {{ $post['content'] }}
-                                        </div>
-                                    @endif
+
+                                    <div class="text-[13px] text-slate-800 dark:text-slate-100 line-clamp-2 mb-2">
+                                        {{ $post['content'] ?? 'No content preview' }}
+                                    </div>
+
                                     <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
                                         <div class="flex items-center gap-3">
                                             <span>{{ number_format($post['impressions'] ?? 0) }} impressions</span>
@@ -195,7 +291,7 @@
                                             <span>{{ number_format($post['comments'] ?? 0) }} comments</span>
                                         </div>
                                         @if(!empty($post['permalink']))
-                                            <a href="{{ $post['permalink'] }}" target="_blank" class="underline">
+                                            <a href="{{ $post['permalink'] }}" target="_blank" class="underline cursor-pointer">
                                                 View
                                             </a>
                                         @endif
@@ -203,15 +299,165 @@
                                 </div>
                             @endforeach
                         </div>
+
+                        @if(Route::has('user.linkedin.analytics.index'))
+                            <div class="mt-4">
+                                <a href="{{ route('user.linkedin.analytics.index') }}"
+                                   class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold shadow-md cursor-pointer
+                                          bg-slate-900 text-slate-50 border border-slate-700 hover:scale-[var(--hover-scale)] transition">
+                                    View all posts and analytics
+                                </a>
+                            </div>
+                        @endif
                     @endif
                 </div>
             </div>
 
+            {{-- Right: Audience + Sync + Connections --}}
             <div class="space-y-6">
+                {{-- Audience overview --}}
                 <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6">
-                    <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50 mb-3">
-                        Recent sync activity
-                    </h3>
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
+                            Audience overview
+                        </h3>
+
+                        <div class="flex items-center gap-2 text-[11px]">
+                            @if(Route::has('user.linkedin.audience_insights.index'))
+                                <a href="{{ route('user.linkedin.audience_insights.index') }}"
+                                   class="px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
+                                    Details
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                        Snapshot of who engages with your profile and content.
+                    </p>
+
+                    @if(!$hasAudienceData)
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Once you sync audience analytics, your top locations, industries and creator metrics will appear here.
+                        </p>
+                    @else
+                        <div class="space-y-2 text-[11px] text-slate-500 dark:text-slate-400">
+                            @if($demoFollowersCount)
+                                <div class="flex items-center justify-between">
+                                    <span>Followers tracked</span>
+                                    <span class="font-semibold text-slate-800 dark:text-slate-50">
+                                        {{ number_format($demoFollowersCount) }}
+                                    </span>
+                                </div>
+                            @endif
+
+                            <div class="flex items-center justify-between">
+                                <span>Latest snapshot</span>
+                                <span class="font-medium text-slate-700 dark:text-slate-200">
+                                    {{ $demoDate ?? $insightDate ?? $creatorDate ?? 'n/a' }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                            @if(!empty($topLocations))
+                                <div class="rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3">
+                                    <div class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
+                                        Top locations
+                                    </div>
+                                    <ul class="text-[11px] text-slate-600 dark:text-slate-200 space-y-1">
+                                        @foreach(array_slice($topLocations, 0, 3) as $item)
+                                            <li class="flex items-center justify-between">
+                                                <span>{{ $item['label'] ?? 'Unknown' }}</span>
+                                                @if(!is_null($item['value'] ?? null))
+                                                    <span class="font-medium">{{ number_format((float) $item['value']) }}</span>
+                                                @endif
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+
+                            @if(!empty($topIndustries))
+                                <div class="rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3">
+                                    <div class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
+                                        Top industries
+                                    </div>
+                                    <ul class="text-[11px] text-slate-600 dark:text-slate-200 space-y-1">
+                                        @foreach(array_slice($topIndustries, 0, 3) as $item)
+                                            <li class="flex items-center justify-between">
+                                                <span>{{ $item['label'] ?? 'Unknown' }}</span>
+                                                @if(!is_null($item['value'] ?? null))
+                                                    <span class="font-medium">{{ number_format((float) $item['value']) }}</span>
+                                                @endif
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+                        </div>
+
+                        @if(!empty($creatorMetrics))
+                            <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+                                <div class="flex items-center justify-between mb-2">
+                                    <p class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                        Creator metrics
+                                    </p>
+                                    <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                                        {{ $creatorDate ? 'Snapshot: '.$creatorDate : 'Snapshot: n/a' }}
+                                    </p>
+                                </div>
+
+                                <dl class="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px] text-slate-600 dark:text-slate-200">
+                                    @foreach(array_slice($creatorMetrics, 0, 4) as $metric)
+                                        <div class="flex items-center justify-between">
+                                            <dt>{{ $metric['label'] ?? 'Metric' }}</dt>
+                                            <dd class="font-semibold text-slate-800 dark:text-slate-50">
+                                                {{ number_format((float) ($metric['value'] ?? 0)) }}
+                                            </dd>
+                                        </div>
+                                    @endforeach
+                                </dl>
+                            </div>
+                        @endif
+                    @endif
+
+                    <div class="mt-4 flex flex-wrap gap-2 text-xs">
+                        @if(Route::has('user.linkedin.audience_insights.index'))
+                            <a href="{{ route('user.linkedin.audience_insights.index') }}"
+                               class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:scale-[var(--hover-scale)] transition">
+                                Audience Insights
+                            </a>
+                        @endif
+                        @if(Route::has('user.linkedin.demographics.index'))
+                            <a href="{{ route('user.linkedin.demographics.index') }}"
+                               class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:scale-[var(--hover-scale)] transition">
+                                Demographics
+                            </a>
+                        @endif
+                        @if(Route::has('user.linkedin.creator_metrics.index'))
+                            <a href="{{ route('user.linkedin.creator_metrics.index') }}"
+                               class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:scale-[var(--hover-scale)] transition">
+                                Creator Metrics
+                            </a>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Recent sync activity --}}
+                <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
+                            Recent sync activity
+                        </h3>
+
+                        @if(Route::has('user.linkedin.sync_jobs.index'))
+                            <a href="{{ route('user.linkedin.sync_jobs.index') }}"
+                               class="px-2.5 py-1 rounded-full text-[11px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
+                                View all
+                            </a>
+                        @endif
+                    </div>
 
                     @if($syncJobs->isEmpty())
                         <p class="text-sm text-slate-500 dark:text-slate-400">
@@ -230,15 +476,14 @@
                                 @endphp
                                 <div class="rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3">
                                     <div class="flex items-center justify-between mb-1">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-[11px] text-slate-500 dark:text-slate-400">
-                                                {{ ucfirst($job->type) }} · {{ ucfirst($job->source) }}
-                                            </span>
-                                        </div>
+                                        <span class="text-[11px] text-slate-500 dark:text-slate-400">
+                                            {{ ucfirst($job->type) }} · {{ ucfirst($job->source) }}
+                                        </span>
                                         <span class="px-2 py-0.5 rounded-full text-[10px] border {{ $statusColor }}">
                                             {{ ucfirst($job->status) }}
                                         </span>
                                     </div>
+
                                     <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
                                         <span>
                                             Started: {{ optional($job->started_at)->diffForHumans() ?? $job->created_at->diffForHumans() }}
@@ -249,9 +494,10 @@
                                             </span>
                                         @endif
                                     </div>
+
                                     @if($job->status === 'failed' && $job->error_message)
                                         <div class="mt-1 text-[11px] text-rose-400">
-                                            {{ \Illuminate\Support\Str::limit($job->error_message, 90) }}
+                                            {{ Str::limit($job->error_message, 90) }}
                                         </div>
                                     @endif
                                 </div>
@@ -264,17 +510,108 @@
                     @endif
                 </div>
 
+                {{-- Latest connections (sample) --}}
+                <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
+                                Latest connections
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                Sample from your most recent connections sync.
+                            </p>
+                        </div>
+
+                        @if(Route::has('user.linkedin.connections.index'))
+                            <a href="{{ route('user.linkedin.connections.index') }}"
+                               class="px-2.5 py-1 rounded-full text-[11px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
+                                View all
+                            </a>
+                        @endif
+                    </div>
+
+                    @if(empty($connectionsSample))
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Once you sync connections, a quick list of recent connections will appear here.
+                        </p>
+                    @else
+                        <div class="space-y-3 text-xs">
+                            @foreach($connectionsSample as $connection)
+                                <div class="flex items-start justify-between rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3">
+                                    <div class="flex items-start gap-3">
+                                        @if(!empty($connection['profile_image_url']))
+                                            <img src="{{ $connection['profile_image_url'] }}"
+                                                 alt="{{ $connection['full_name'] ?? 'Connection' }}"
+                                                 class="h-8 w-8 rounded-full object-cover border border-slate-200 dark:border-slate-700">
+                                        @else
+                                            <div class="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-[10px] font-semibold text-white shadow">
+                                                {{ strtoupper(substr($connection['full_name'] ?? 'CN', 0, 2)) }}
+                                            </div>
+                                        @endif
+
+                                        <div>
+                                            <div class="text-[13px] font-semibold text-slate-800 dark:text-slate-50">
+                                                {{ $connection['full_name'] ?? 'Connection' }}
+                                            </div>
+
+                                            @if(!empty($connection['headline']))
+                                                <div class="text-[11px] text-slate-500 dark:text-slate-400">
+                                                    {{ Str::limit($connection['headline'], 70) }}
+                                                </div>
+                                            @endif
+
+                                            <div class="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                                                @if(!empty($connection['location']))
+                                                    <span>{{ $connection['location'] }}</span>
+                                                @endif
+
+                                                @if(!empty($connection['industry']))
+                                                    <span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                                                        {{ $connection['industry'] }}
+                                                    </span>
+                                                @endif
+
+                                                @if(!empty($connection['mutual_connections_count']))
+                                                    <span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                                                        {{ number_format((int) $connection['mutual_connections_count']) }} mutual
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex flex-col items-end gap-1">
+                                        @if(!empty($connection['connected_at']))
+                                            <span class="text-[10px] text-slate-500 dark:text-slate-400">
+                                                {{ Carbon::parse($connection['connected_at'])->diffForHumans() }}
+                                            </span>
+                                        @endif
+
+                                        @if(!empty($connection['profile_url']))
+                                            <a href="{{ $connection['profile_url'] }}" target="_blank"
+                                               class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
+                                                View profile
+                                            </a>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Smart recommendations placeholder --}}
                 <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5">
                     <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50 mb-2">
                         Smart recommendations
                     </h3>
                     <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
-                        This block will later show AI-based posting frequency, best times, and content recommendations.
+                        This block will later show AI-based posting frequency, best times and content recommendations powered by your recent metrics and audience data.
                     </p>
                     <ul class="text-xs text-slate-500 dark:text-slate-400 space-y-1 list-disc list-inside">
-                        <li>We will use your last 30 days of metrics.</li>
-                        <li>Suggestions will be refreshed after each sync.</li>
-                        <li>This prepares the ground for the “AI Insights & Advanced Analytics” addon.</li>
+                        <li>Uses your last 30 days of profile and posts performance.</li>
+                        <li>Audience segments and creator metrics will refine suggestions.</li>
+                        <li>Suggestions will refresh after each new sync.</li>
                     </ul>
                 </div>
             </div>
@@ -288,18 +625,18 @@
 document.addEventListener('DOMContentLoaded', function () {
     if (!window.Chart) return;
 
-    const labels = @json($times['dates'] ?? []);
+    const labels          = @json($times['dates'] ?? []);
     const connectionsData = @json($times['connections'] ?? []);
-    const followersData = @json($times['followers'] ?? []);
-    const viewsData = @json($times['profile_views'] ?? []);
-    const searchData = @json($times['search_appearances'] ?? []);
+    const followersData   = @json($times['followers'] ?? []);
+    const viewsData       = @json($times['profile_views'] ?? []);
+    const searchData      = @json($times['search_appearances'] ?? []);
 
     if (!labels.length) return;
 
-    const rootStyle = getComputedStyle(document.documentElement);
-    const colorPrimary   = rootStyle.getPropertyValue('--color-primary').trim() || '#4f46e5';
+    const rootStyle      = getComputedStyle(document.documentElement);
+    const colorPrimary   = rootStyle.getPropertyValue('--color-primary').trim()   || '#4f46e5';
     const colorSecondary = rootStyle.getPropertyValue('--color-secondary').trim() || '#0ea5e9';
-    const colorAccent    = rootStyle.getPropertyValue('--color-accent').trim() || '#f97316';
+    const colorAccent    = rootStyle.getPropertyValue('--color-accent').trim()    || '#f97316';
     const textColor      = rootStyle.getPropertyValue('--color-text-secondary').trim() || '#6b7280';
 
     const commonOptions = {
@@ -308,10 +645,7 @@ document.addEventListener('DOMContentLoaded', function () {
         interaction: { mode: 'index', intersect: false },
         plugins: {
             legend: {
-                labels: {
-                    color: textColor,
-                    font: { size: 11 }
-                }
+                labels: { color: textColor, font: { size: 11 } }
             },
             tooltip: {
                 callbacks: {
@@ -325,11 +659,7 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         scales: {
             x: {
-                ticks: {
-                    color: textColor,
-                    maxRotation: 0,
-                    autoSkip: true
-                },
+                ticks: { color: textColor, maxRotation: 0, autoSkip: true },
                 grid: { display: false }
             },
             y: {

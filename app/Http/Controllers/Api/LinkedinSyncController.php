@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\LinkedinAudienceDemographic;
+use App\Models\LinkedinConnection;
+use App\Models\LinkedinCreatorAudienceMetric;
 use App\Models\LinkedinAudienceInsight;
 use App\Models\LinkedinPost;
 use App\Models\LinkedinPostMetric;
@@ -83,6 +86,8 @@ class LinkedinSyncController extends Controller
             'audience.engagement_sources'   => ['nullable', 'array'],
         ]);
 
+        $data['public_url'] = $this->normalizePublicUrl($data['public_url']);
+
         $job = LinkedinSyncJob::create([
             'user_id'    => $user->id,
             'source'     => $source,
@@ -96,13 +101,9 @@ class LinkedinSyncController extends Controller
 
         try {
             DB::transaction(function () use (&$profile, $data, $user) {
-                $profile = LinkedinProfile::firstOrNew([
-                    'user_id'    => $user->id,
-                    'public_url' => $data['public_url'],
-                ]);
-
-                $profile->fill([
-                    'linkedin_id'       => $data['linkedin_id'] ?? $profile->linkedin_id,
+                $payloadForProfile = [
+                    'linkedin_id'       => $data['linkedin_id'] ?? null,
+                    'public_url'        => $data['public_url'],
                     'name'              => $data['name'],
                     'headline'          => $data['headline'] ?? null,
                     'profile_image_url' => $data['profile_image_url'] ?? null,
@@ -110,20 +111,13 @@ class LinkedinSyncController extends Controller
                     'industry'          => $data['industry'] ?? null,
                     'connections_count' => $data['connections_count'],
                     'followers_count'   => $data['followers_count'],
-                    'profile_type'      => $data['profile_type'] ?? ($profile->profile_type ?: 'own'),
+                    'profile_type'      => $data['profile_type'] ?? 'own',
                     'last_synced_at'    => now(),
                     'sync_status'       => 'ok',
                     'sync_error'        => null,
-                ]);
+                ];
 
-                if (
-                    !$profile->exists &&
-                    !LinkedinProfile::forUser($user->id)->owned()->where('is_primary', true)->exists()
-                ) {
-                    $profile->is_primary = true;
-                }
-
-                $profile->save();
+                $profile = LinkedinProfile::upsertFromPayload($user, $payloadForProfile);
 
                 $m = $data['metrics'];
 
@@ -211,6 +205,8 @@ class LinkedinSyncController extends Controller
             'search_appearances' => ['nullable'],
         ]);
 
+        $data['public_url'] = $this->normalizePublicUrl($data['public_url']);
+
         $job = LinkedinSyncJob::create([
             'user_id'    => $user->id,
             'source'     => $source,
@@ -231,34 +227,23 @@ class LinkedinSyncController extends Controller
                 $data['followers_count'] ?? ($data['followers'] ?? null)
             ) ?? 0;
 
-            $profile = LinkedinProfile::firstOrNew([
-                'user_id'    => $user->id,
-                'public_url' => $data['public_url'],
-            ]);
-
-            $profile->fill([
-                'linkedin_id'       => $data['linkedin_id'] ?? $profile->linkedin_id,
-                'name'              => $data['name'] ?? $profile->name ?? 'LinkedIn profile',
-                'headline'          => $data['headline'] ?? $profile->headline,
-                'profile_image_url' => $data['profile_image_url'] ?? $profile->profile_image_url,
-                'location'          => $data['location'] ?? $profile->location,
-                'industry'          => $data['industry'] ?? $profile->industry,
+            $payloadForProfile = [
+                'linkedin_id'       => $data['linkedin_id'] ?? null,
+                'public_url'        => $data['public_url'],
+                'name'              => $data['name'] ?? null,
+                'headline'          => $data['headline'] ?? null,
+                'profile_image_url' => $data['profile_image_url'] ?? null,
+                'location'          => $data['location'] ?? null,
+                'industry'          => $data['industry'] ?? null,
                 'connections_count' => $connectionsCount,
                 'followers_count'   => $followersCount,
-                'profile_type'      => $profile->profile_type ?: 'own',
+                'profile_type'      => 'own',
                 'last_synced_at'    => now(),
                 'sync_status'       => 'ok',
                 'sync_error'        => null,
-            ]);
+            ];
 
-            if (
-                !$profile->exists &&
-                !LinkedinProfile::forUser($user->id)->owned()->where('is_primary', true)->exists()
-            ) {
-                $profile->is_primary = true;
-            }
-
-            $profile->save();
+            $profile = LinkedinProfile::upsertFromPayload($user, $payloadForProfile);
 
             $today = Carbon::today()->toDateString();
 
@@ -331,6 +316,110 @@ class LinkedinSyncController extends Controller
         return $this->syncPostsSimple($request, $user, $source);
     }
 
+    protected function normalizeUrl(?string $url): ?string
+    {
+        if (!$url) return null;
+
+        $u = trim($url);
+        $u = preg_replace('/[?#].*$/', '', $u);
+        $u = preg_replace('#^http://#i', 'https://', $u);
+
+        $u = str_ireplace('https://linkedin.com', 'https://www.linkedin.com', $u);
+        $u = str_ireplace('https://m.linkedin.com', 'https://www.linkedin.com', $u);
+        $u = str_ireplace('https://mobile.linkedin.com', 'https://www.linkedin.com', $u);
+
+        $u = rtrim($u, '/');
+
+        return $u ?: null;
+    }
+
+    protected function normalizePublicUrl(string $publicUrl): string
+    {
+        return $this->normalizeUrl($publicUrl) ?? $publicUrl;
+    }
+
+    protected function permalinkFirstKey(array $data): ?string
+    {
+        $permalink = $this->normalizeUrl($data['permalink'] ?? null);
+        if ($permalink) return 'permalink:' . $permalink;
+
+        $target = $this->normalizeUrl($data['target_permalink'] ?? null);
+        if ($target) return 'target:' . $target;
+
+        $id = $data['linkedin_post_id'] ?? ($data['external_id'] ?? null);
+        if ($id) return 'id:' . trim((string) $id);
+
+        return null;
+    }
+
+    protected function upsertPostPermalinkFirst(int $profileId, array $postData): LinkedinPost
+    {
+        $permalink = $this->normalizeUrl($postData['permalink'] ?? null);
+        $target    = $this->normalizeUrl($postData['target_permalink'] ?? null);
+
+        $query = LinkedinPost::where('linkedin_profile_id', $profileId);
+
+        $existing = null;
+
+        if ($permalink) {
+            $existing = (clone $query)->where('permalink', $permalink)->first();
+        }
+
+        if (!$existing && $target) {
+            $existing = (clone $query)->where('target_permalink', $target)->first();
+        }
+
+        if (!$existing) {
+            $id = $postData['linkedin_post_id'] ?? ($postData['external_id'] ?? null);
+            if ($id) {
+                $existing = (clone $query)->where('linkedin_post_id', (string) $id)->first();
+            }
+        }
+
+        $postedAt = $postData['posted_at'] ?? null;
+        if (!$postedAt && !empty($postData['posted_at_human'])) {
+            $postedAt = $this->parseLinkedInDate($postData['posted_at_human'])?->toDateTimeString();
+        }
+
+        $payload = [
+            'linkedin_profile_id' => $profileId,
+            'linkedin_post_id'    => (string) (
+                $postData['linkedin_post_id']
+                ?? ($postData['external_id'] ?? ($existing?->linkedin_post_id ?? ''))
+            ),
+            'permalink'         => $permalink ?? ($existing?->permalink ?? null),
+            'target_permalink'  => $target ?? ($existing?->target_permalink ?? null),
+            'posted_at'         => $postedAt
+                ? Carbon::parse($postedAt)->toDateTimeString()
+                : (($existing?->posted_at) ? Carbon::parse($existing->posted_at)->toDateTimeString() : Carbon::now()->toDateTimeString()),
+            'post_type'         => $postData['post_type'] ?? ($existing?->post_type ?? 'post'),
+            'activity_category' => $postData['activity_category'] ?? ($existing?->activity_category ?? null),
+            'media_type'        => $postData['media_type'] ?? ($existing?->media_type ?? null),
+            'is_reshare'        => (bool) ($postData['is_reshare'] ?? ($existing?->is_reshare ?? false)),
+            'is_sponsored'      => (bool) ($postData['is_sponsored'] ?? ($existing?->is_sponsored ?? false)),
+            'content_excerpt'   => $postData['content_excerpt']
+                ?? (isset($postData['content'])
+                    ? Str::limit($postData['content'], 400)
+                    : ($existing?->content_excerpt ?? null)),
+        ];
+
+        if ($existing) {
+            $existing->fill($payload);
+            $existing->save();
+            return $existing;
+        }
+
+        return LinkedinPost::create($payload);
+    }
+
+    protected function sha256($value): string
+    {
+        return hash(
+            'sha256',
+            is_string($value) ? $value : json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+        );
+    }
+
     protected function syncPostsWithMetrics(Request $request, User $user, string $source)
     {
         $data = $request->validate([
@@ -348,13 +437,19 @@ class LinkedinSyncController extends Controller
             'posts.*.metrics'                    => ['required', 'array'],
             'posts.*.metrics.metric_date'        => ['required', 'date'],
             'posts.*.metrics.impressions'        => ['required', 'integer', 'min:0'],
+            'posts.*.metrics.unique_impressions' => ['nullable', 'integer', 'min:0'],
             'posts.*.metrics.clicks'             => ['nullable', 'integer', 'min:0'],
             'posts.*.metrics.reactions'          => ['nullable', 'integer', 'min:0'],
             'posts.*.metrics.comments'           => ['nullable', 'integer', 'min:0'],
             'posts.*.metrics.reposts'            => ['nullable', 'integer', 'min:0'],
             'posts.*.metrics.saves'              => ['nullable', 'integer', 'min:0'],
+            'posts.*.metrics.video_views'        => ['nullable', 'integer', 'min:0'],
+            'posts.*.metrics.follows_from_post'  => ['nullable', 'integer', 'min:0'],
+            'posts.*.metrics.profile_visits_from_post' => ['nullable', 'integer', 'min:0'],
             'posts.*.metrics.engagement_rate'    => ['nullable', 'numeric', 'min:0'],
         ]);
+
+        $data['public_url'] = $this->normalizePublicUrl($data['public_url']);
 
         $job = LinkedinSyncJob::create([
             'user_id'    => $user->id,
@@ -371,51 +466,47 @@ class LinkedinSyncController extends Controller
         $profile = null;
 
         try {
-            $profile = LinkedinProfile::firstOrCreate(
-                [
-                    'user_id'    => $user->id,
-                    'public_url' => $data['public_url'],
-                ],
-                [
-                    'name'         => 'Unknown',
-                    'profile_type' => 'own',
-                    'sync_status'  => 'ok',
-                ]
-            );
+            $profile = LinkedinProfile::upsertFromPayload($user, [
+                'public_url'     => $data['public_url'],
+                'name'           => 'Unknown',
+                'profile_type'   => 'own',
+                'last_synced_at' => now(),
+                'sync_status'    => 'ok',
+                'sync_error'     => null,
+            ]);
 
             DB::transaction(function () use ($profile, $data) {
                 foreach ($data['posts'] as $p) {
-                    $post = LinkedinPost::updateOrCreate(
-                        [
-                            'linkedin_profile_id' => $profile->id,
-                            'linkedin_post_id'    => $p['linkedin_post_id'],
-                        ],
-                        [
-                            'linkedin_profile_id' => $profile->id,
-                            'permalink'           => $p['permalink'] ?? null,
-                            'posted_at'           => Carbon::parse($p['posted_at'])->toDateTimeString(),
-                            'post_type'           => $p['post_type'] ?? 'post',
-                            'is_reshare'          => $p['is_reshare'] ?? false,
-                            'is_sponsored'        => $p['is_sponsored'] ?? false,
-                            'content_excerpt'     => $p['content_excerpt'] ?? null,
-                        ]
-                    );
+                    $post = $this->upsertPostPermalinkFirst($profile->id, [
+                        'linkedin_post_id' => $p['linkedin_post_id'],
+                        'permalink'        => $p['permalink'] ?? null,
+                        'posted_at'        => $p['posted_at'],
+                        'post_type'        => $p['post_type'] ?? 'post',
+                        'is_reshare'       => $p['is_reshare'] ?? false,
+                        'is_sponsored'     => $p['is_sponsored'] ?? false,
+                        'content_excerpt'  => $p['content_excerpt'] ?? null,
+                    ]);
 
                     $m = $p['metrics'];
+                    $metricDate = Carbon::parse($m['metric_date'])->toDateString();
 
                     LinkedinPostMetric::updateOrCreate(
                         [
                             'linkedin_post_id' => $post->id,
-                            'metric_date'      => Carbon::parse($m['metric_date'])->toDateString(),
+                            'metric_date'      => $metricDate,
                         ],
                         [
-                            'impressions'     => $m['impressions'],
-                            'clicks'          => $m['clicks'] ?? 0,
-                            'reactions'       => $m['reactions'] ?? 0,
-                            'comments'        => $m['comments'] ?? 0,
-                            'reposts'         => $m['reposts'] ?? 0,
-                            'saves'           => $m['saves'] ?? 0,
-                            'engagement_rate' => $m['engagement_rate'] ?? 0,
+                            'impressions'                  => (int) $m['impressions'],
+                            'unique_impressions'           => (int) ($m['unique_impressions'] ?? 0),
+                            'clicks'                      => (int) ($m['clicks'] ?? 0),
+                            'reactions'                   => (int) ($m['reactions'] ?? 0),
+                            'comments'                    => (int) ($m['comments'] ?? 0),
+                            'reposts'                     => (int) ($m['reposts'] ?? 0),
+                            'saves'                       => (int) ($m['saves'] ?? 0),
+                            'video_views'                 => (int) ($m['video_views'] ?? 0),
+                            'follows_from_post'           => (int) ($m['follows_from_post'] ?? 0),
+                            'profile_visits_from_post'    => (int) ($m['profile_visits_from_post'] ?? 0),
+                            'engagement_rate'             => (float) ($m['engagement_rate'] ?? 0),
                         ]
                     );
                 }
@@ -516,31 +607,18 @@ class LinkedinSyncController extends Controller
                     $comments    = $this->normalizeNumber($postData['comments'] ?? null) ?? 0;
                     $reposts     = $this->normalizeNumber($postData['reposts'] ?? null) ?? 0;
 
-                    $postedAt = $this->parseLinkedInDate($postData['posted_at_human'] ?? null)
-                        ?? Carbon::today();
+                    $postedAt = $this->parseLinkedInDate($postData['posted_at_human'] ?? null) ?? Carbon::today();
 
-                    $postType = $postData['post_type'] ?? 'post';
-
-                    $post = LinkedinPost::updateOrCreate(
-                        [
-                            'linkedin_profile_id' => $profile->id,
-                            'linkedin_post_id'    => $postData['external_id'],
-                        ],
-                        [
-                            'linkedin_profile_id' => $profile->id,
-                            'permalink'           => $postData['permalink'] ?? null,
-                            'target_permalink'    => $postData['target_permalink'] ?? null,
-                            'posted_at'           => $postedAt->toDateTimeString(),
-                            'post_type'           => $postType,
-                            'activity_category'   => $category,
-                            'media_type'          => $postData['media_type'] ?? null,
-                            'is_reshare'          => false,
-                            'is_sponsored'        => false,
-                            'content_excerpt'     => isset($postData['content'])
-                                ? Str::limit($postData['content'], 400)
-                                : null,
-                        ]
-                    );
+                    $post = $this->upsertPostPermalinkFirst($profile->id, [
+                        'external_id'       => $postData['external_id'],
+                        'permalink'         => $postData['permalink'] ?? null,
+                        'target_permalink'  => $postData['target_permalink'] ?? null,
+                        'posted_at'         => $postedAt->toDateTimeString(),
+                        'post_type'         => $postData['post_type'] ?? 'post',
+                        'activity_category' => $category,
+                        'media_type'        => $postData['media_type'] ?? null,
+                        'content'           => $postData['content'] ?? null,
+                    ]);
 
                     LinkedinPostMetric::updateOrCreate(
                         [
@@ -548,13 +626,17 @@ class LinkedinSyncController extends Controller
                             'metric_date'      => $today,
                         ],
                         [
-                            'impressions'     => $impressions,
-                            'clicks'          => 0,
-                            'reactions'       => $reactions,
-                            'comments'        => $comments,
-                            'reposts'         => $reposts,
-                            'saves'           => 0,
-                            'engagement_rate' => 0,
+                            'impressions'                => (int) $impressions,
+                            'unique_impressions'         => 0,
+                            'clicks'                    => 0,
+                            'reactions'                 => (int) $reactions,
+                            'comments'                  => (int) $comments,
+                            'reposts'                   => (int) $reposts,
+                            'saves'                     => 0,
+                            'video_views'               => 0,
+                            'follows_from_post'         => 0,
+                            'profile_visits_from_post'  => 0,
+                            'engagement_rate'           => 0,
                         ]
                     );
 
@@ -580,6 +662,318 @@ class LinkedinSyncController extends Controller
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Failed to sync activity.',
+            ], 500);
+        }
+    }
+
+    public function syncAudienceDemographics(Request $request)
+    {
+        [$user, $source] = $this->resolveUserAndSource($request);
+
+        $data = $request->validate([
+            'public_url'      => ['required', 'url'],
+            'snapshot_date'   => ['required', 'date'],
+            'followers_count' => ['nullable', 'integer', 'min:0'],
+            'demographics'    => ['nullable', 'array'],
+        ]);
+
+        $data['public_url'] = $this->normalizePublicUrl($data['public_url']);
+
+        $job = LinkedinSyncJob::create([
+            'user_id'    => $user->id,
+            'source'     => $source,
+            'type'       => 'audience_demographics',
+            'status'     => 'running',
+            'payload'    => [
+                'public_url'    => $data['public_url'],
+                'snapshot_date' => $data['snapshot_date'],
+            ],
+            'started_at' => now(),
+        ]);
+
+        $profile = null;
+
+        try {
+            $profile = LinkedinProfile::upsertFromPayload($user, [
+                'public_url'     => $data['public_url'],
+                'name'           => 'Unknown',
+                'profile_type'   => 'own',
+                'last_synced_at' => now(),
+                'sync_status'    => 'ok',
+                'sync_error'     => null,
+            ]);
+
+            $snapshot = Carbon::parse($data['snapshot_date'])->toDateString();
+            $demo     = $data['demographics'] ?? null;
+
+            LinkedinAudienceDemographic::updateOrCreate(
+                [
+                    'linkedin_profile_id' => $profile->id,
+                    'snapshot_date'       => $snapshot,
+                ],
+                [
+                    'demographics'   => $demo,
+                    'followers_count'=> (int) ($data['followers_count'] ?? 0),
+                    'source_hash'    => $demo ? $this->sha256($demo) : null,
+                ]
+            );
+
+            $profile->last_synced_at = now();
+            $profile->save();
+
+            $job->status      = 'success';
+            $job->items_count = 1;
+            $job->finished_at = now();
+            $job->save();
+
+            return response()->json([
+                'status'     => 'ok',
+                'profile_id' => $profile->id,
+            ]);
+        } catch (\Throwable $e) {
+            if ($profile) {
+                $profile->update([
+                    'sync_status' => 'error',
+                    'sync_error'  => $e->getMessage(),
+                ]);
+            }
+
+            $job->status        = 'failed';
+            $job->error_message = $e->getMessage();
+            $job->finished_at   = now();
+            $job->save();
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to sync demographics.',
+            ], 500);
+        }
+    }
+
+    public function syncCreatorAudience(Request $request)
+    {
+        [$user, $source] = $this->resolveUserAndSource($request);
+
+        $data = $request->validate([
+            'public_url'           => ['required', 'url'],
+            'metrics'              => ['required', 'array'],
+            'metrics.metric_date'  => ['required', 'date'],
+            'metrics.data'         => ['nullable', 'array'],
+        ]);
+
+        $data['public_url'] = $this->normalizePublicUrl($data['public_url']);
+
+        $job = LinkedinSyncJob::create([
+            'user_id'    => $user->id,
+            'source'     => $source,
+            'type'       => 'creator_audience',
+            'status'     => 'running',
+            'payload'    => [
+                'public_url'  => $data['public_url'],
+                'metric_date' => $data['metrics']['metric_date'],
+            ],
+            'started_at' => now(),
+        ]);
+
+        $profile = null;
+
+        try {
+            $profile = LinkedinProfile::upsertFromPayload($user, [
+                'public_url'     => $data['public_url'],
+                'name'           => 'Unknown',
+                'profile_type'   => 'own',
+                'last_synced_at' => now(),
+                'sync_status'    => 'ok',
+                'sync_error'     => null,
+            ]);
+
+            $metricDate = Carbon::parse($data['metrics']['metric_date'])->toDateString();
+            $payload    = $data['metrics']['data'] ?? null;
+
+            LinkedinCreatorAudienceMetric::updateOrCreate(
+                [
+                    'linkedin_profile_id' => $profile->id,
+                    'metric_date'         => $metricDate,
+                ],
+                [
+                    'metrics'     => $payload,
+                    'source_hash' => $payload ? $this->sha256($payload) : null,
+                ]
+            );
+
+            $profile->last_synced_at = now();
+            $profile->save();
+
+            $job->status      = 'success';
+            $job->items_count = 1;
+            $job->finished_at = now();
+            $job->save();
+
+            return response()->json([
+                'status'     => 'ok',
+                'profile_id' => $profile->id,
+            ]);
+        } catch (\Throwable $e) {
+            if ($profile) {
+                $profile->update([
+                    'sync_status' => 'error',
+                    'sync_error'  => $e->getMessage(),
+                ]);
+            }
+
+            $job->status        = 'failed';
+            $job->error_message = $e->getMessage();
+            $job->finished_at   = now();
+            $job->save();
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to sync creator audience metrics.',
+            ], 500);
+        }
+    }
+
+    public function syncConnections(Request $request)
+    {
+        [$user, $source] = $this->resolveUserAndSource($request);
+
+        $data = $request->validate([
+            'public_url'                => ['required', 'url'],
+            'connections'              => ['required', 'array', 'min:1'],
+
+            'connections.*.linkedin_connection_id' => ['nullable', 'string', 'max:191'],
+            'connections.*.public_identifier'      => ['nullable', 'string', 'max:191'],
+            'connections.*.profile_url'            => ['nullable', 'string', 'max:2048'],
+            'connections.*.full_name'              => ['nullable', 'string', 'max:191'],
+            'connections.*.headline'               => ['nullable', 'string', 'max:255'],
+            'connections.*.location'               => ['nullable', 'string', 'max:191'],
+            'connections.*.industry'               => ['nullable', 'string', 'max:191'],
+            'connections.*.profile_image_url'      => ['nullable', 'string', 'max:2048'],
+            'connections.*.degree'                 => ['nullable', 'integer', 'min:1', 'max:3'],
+            'connections.*.mutual_connections_count' => ['nullable', 'integer', 'min:0'],
+            'connections.*.connected_at'           => ['nullable', 'date'],
+            'connections.*.last_seen_at'           => ['nullable', 'date'],
+        ]);
+
+        $data['public_url'] = $this->normalizePublicUrl($data['public_url']);
+
+        $job = LinkedinSyncJob::create([
+            'user_id'    => $user->id,
+            'source'     => $source,
+            'type'       => 'connections',
+            'status'     => 'running',
+            'payload'    => [
+                'public_url' => $data['public_url'],
+                'count'      => count($data['connections']),
+            ],
+            'started_at' => now(),
+        ]);
+
+        $profile = null;
+
+        try {
+            $profile = LinkedinProfile::upsertFromPayload($user, [
+                'public_url'     => $data['public_url'],
+                'name'           => 'Unknown',
+                'profile_type'   => 'own',
+                'last_synced_at' => now(),
+                'sync_status'    => 'ok',
+                'sync_error'     => null,
+            ]);
+
+            $count = 0;
+
+            DB::transaction(function () use ($profile, $data, &$count) {
+                foreach ($data['connections'] as $c) {
+                    $profileUrl = $this->normalizeUrl($c['profile_url'] ?? null);
+
+                    if (!empty($c['public_identifier'])) {
+                        $dedupe = 'handle:' . trim((string) $c['public_identifier']);
+                    } elseif (!empty($c['linkedin_connection_id'])) {
+                        $dedupe = 'id:' . trim((string) $c['linkedin_connection_id']);
+                    } elseif ($profileUrl) {
+                        $dedupe = 'url:' . $profileUrl;
+                    } else {
+                        $dedupe = 'hash:' . $this->sha256([
+                            'n' => $c['full_name'] ?? null,
+                            'h' => $c['headline'] ?? null,
+                            'l' => $c['location'] ?? null,
+                        ]);
+                    }
+
+                    $payload = [
+                        'linkedin_profile_id'      => $profile->id,
+                        'linkedin_connection_id'   => $c['linkedin_connection_id'] ?? null,
+                        'public_identifier'        => $c['public_identifier'] ?? null,
+                        'profile_url'              => $profileUrl,
+                        'full_name'                => $c['full_name'] ?? null,
+                        'headline'                 => $c['headline'] ?? null,
+                        'location'                 => $c['location'] ?? null,
+                        'industry'                 => $c['industry'] ?? null,
+                        'profile_image_url'        => $c['profile_image_url'] ?? null,
+                        'degree'                   => $c['degree'] ?? null,
+                        'mutual_connections_count' => (int) ($c['mutual_connections_count'] ?? 0),
+                        'connected_at'             => !empty($c['connected_at'])
+                            ? Carbon::parse($c['connected_at'])->toDateTimeString()
+                            : null,
+                        'last_seen_at'             => !empty($c['last_seen_at'])
+                            ? Carbon::parse($c['last_seen_at'])->toDateTimeString()
+                            : null,
+                        'dedupe_key'               => $dedupe,
+                        'source_hash'              => $this->sha256([
+                            'linkedin_connection_id'   => $c['linkedin_connection_id'] ?? null,
+                            'public_identifier'        => $c['public_identifier'] ?? null,
+                            'profile_url'              => $profileUrl,
+                            'full_name'                => $c['full_name'] ?? null,
+                            'headline'                 => $c['headline'] ?? null,
+                            'location'                 => $c['location'] ?? null,
+                            'industry'                 => $c['industry'] ?? null,
+                            'degree'                   => $c['degree'] ?? null,
+                            'mutual_connections_count' => $c['mutual_connections_count'] ?? 0,
+                        ]),
+                    ];
+
+                    LinkedinConnection::updateOrCreate(
+                        [
+                            'linkedin_profile_id' => $profile->id,
+                            'dedupe_key'          => $dedupe,
+                        ],
+                        $payload
+                    );
+
+                    $count++;
+                }
+
+                $profile->last_synced_at = now();
+                $profile->save();
+            });
+
+            $job->status      = 'success';
+            $job->items_count = $count;
+            $job->finished_at = now();
+            $job->save();
+
+            return response()->json([
+                'status'             => 'ok',
+                'profile_id'         => $profile->id,
+                'connections_synced' => $count,
+            ]);
+        } catch (\Throwable $e) {
+            if ($profile) {
+                $profile->update([
+                    'sync_status' => 'error',
+                    'sync_error'  => $e->getMessage(),
+                ]);
+            }
+
+            $job->status        = 'failed';
+            $job->error_message = $e->getMessage();
+            $job->finished_at   = now();
+            $job->save();
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to sync connections.',
             ], 500);
         }
     }

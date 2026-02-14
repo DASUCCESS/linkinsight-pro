@@ -36,6 +36,11 @@ class LinkedinPost extends Model
 
     public function metrics()
     {
-        return $this->hasMany(LinkedinPostMetric::class);
+        return $this->hasMany(LinkedinPostMetric::class, 'linkedin_post_id');
+    }
+
+    public function latestMetric()
+    {
+        return $this->hasOne(LinkedinPostMetric::class, 'linkedin_post_id')->latestOfMany('metric_date');
     }
 }

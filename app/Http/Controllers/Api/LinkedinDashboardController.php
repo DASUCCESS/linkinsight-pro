@@ -14,7 +14,7 @@ class LinkedinDashboardController extends Controller
 
     public function summary(Request $request)
     {
-        $user = $request->user();
+        $user      = $request->user();
         $profileId = $request->query('profile_id');
 
         $summary = $this->analyticsService->getSummaryForUser($user, $profileId);

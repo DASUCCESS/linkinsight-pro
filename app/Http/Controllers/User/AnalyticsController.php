@@ -11,7 +11,8 @@ class AnalyticsController extends Controller
 {
     public function __construct(
         protected LinkedinAnalyticsService $analyticsService
-    ) {}
+    ) {
+    }
 
     public function index(Request $request)
     {
@@ -22,7 +23,7 @@ class AnalyticsController extends Controller
         $search    = $request->query('q');
         $type      = $request->query('type');
 
-        $summary = $this->analyticsService->getSummaryForUser($user, $profileId, $from, $to);
+        $summary = $this->analyticsService->getSummaryForUser($user, $profileId ? (int) $profileId : null, $from, $to);
 
         $postsPaginated = null;
 
@@ -30,7 +31,8 @@ class AnalyticsController extends Controller
             $profile = $summary['profile'] ?? null;
 
             if ($profile) {
-                $postsQuery = LinkedinPost::where('linkedin_profile_id', $profile['id']);
+                $postsQuery = LinkedinPost::query()
+                    ->where('linkedin_profile_id', $profile['id']);
 
                 if ($search) {
                     $postsQuery->where(function ($q) use ($search) {
@@ -44,6 +46,7 @@ class AnalyticsController extends Controller
                 }
 
                 $postsPaginated = $postsQuery
+                    ->with('latestMetric')
                     ->orderByDesc('posted_at')
                     ->paginate(10)
                     ->withQueryString();

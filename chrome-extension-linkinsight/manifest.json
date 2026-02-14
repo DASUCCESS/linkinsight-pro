@@ -1,17 +1,10 @@
 {
   "manifest_version": 3,
   "name": "LinkInsight Pro Connector",
-  "version": "1.1.0",
-  "description": "Sync your LinkedIn profile and posts with LinkInsight Pro.",
-  "permissions": [
-    "storage",
-    "tabs"
-  ],
-  "host_permissions": [
-    "https://www.linkedin.com/*",
-    "http://*/*",
-    "https://*/*"
-  ],
+  "version": "1.3.0",
+  "description": "Sync your LinkedIn profile, posts, creator analytics, audience insights, demographics and connections with LinkInsight Pro.",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": ["https://www.linkedin.com/*", "http://*/*", "https://*/*"],
   "action": {
     "default_title": "LinkInsight Pro",
     "default_popup": "popup.html"
@@ -19,12 +12,8 @@
   "options_page": "options.html",
   "content_scripts": [
     {
-      "matches": [
-        "https://www.linkedin.com/*"
-      ],
-      "js": [
-        "contentScript.js"
-      ],
+      "matches": ["https://www.linkedin.com/*"],
+      "js": ["contentScript.js"],
       "run_at": "document_idle"
     }
   ]

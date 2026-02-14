@@ -11,7 +11,8 @@ class DashboardController extends Controller
 {
     public function __construct(
         protected LinkedinAnalyticsService $analyticsService
-    ) {}
+    ) {
+    }
 
     public function index(Request $request)
     {
@@ -19,7 +20,8 @@ class DashboardController extends Controller
 
         $summary = $this->analyticsService->getSummaryForUser($user, null);
 
-        $syncJobs = LinkedinSyncJob::where('user_id', $user->id)
+        $syncJobs = LinkedinSyncJob::query()
+            ->where('user_id', $user->id)
             ->when($request->query('sync_status'), function ($q, $status) {
                 $q->where('status', $status);
             })
