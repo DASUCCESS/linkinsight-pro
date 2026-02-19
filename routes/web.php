@@ -126,10 +126,6 @@ Route::middleware('auth')->group(function () {
         // User analytics (profile metrics + posts)
         Route::get('/analytics', [UserAnalyticsController::class, 'index'])->name('analytics.index');
 
-        // Audience insights (match layout route name)
-        Route::get('/audience/insights', [LinkedinAudienceController::class, 'insights'])
-            ->name('audience_insights.index');
-
         // Demographics (match layout route name)
         Route::get('/audience/demographics', [LinkedinAudienceController::class, 'demographics'])
             ->name('demographics.index');

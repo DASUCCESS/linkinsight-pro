@@ -25,15 +25,16 @@
         $demoDate    = data_get($audienceDemographics, 'snapshot_date');
         $creatorDate = data_get($creatorAudience, 'snapshot_date');
 
-        $topLocations  = data_get($audienceInsights, 'top_locations', []);
-        $topIndustries = data_get($audienceInsights, 'top_industries', []);
-        $topJobTitles  = data_get($audienceInsights, 'top_job_titles', []);
-        $topSources    = data_get($audienceInsights, 'engagement_sources', []);
-
-        $demoList           = data_get($audienceDemographics, 'demographics', []);
         $demoFollowersCount = data_get($audienceDemographics, 'followers_count');
 
-        $creatorMetrics = data_get($creatorAudience, 'metrics', []);
+        // Fix "Unknown" display (profile)
+        $rawName = trim((string) data_get($profile, 'name', ''));
+        $displayName = ($rawName !== '' && Str::lower($rawName) !== 'unknown') ? $rawName : 'LinkedIn profile';
+        $displayImg  = data_get($profile, 'profile_image_url');
+
+        $extensionId  = config('linkinsight.extension_id');
+        $extensionUrl = config('linkinsight.extension_popup_url');
+        $storeUrl     = config('linkinsight.chrome_store_url');
     @endphp
 
     @if($status === 'empty')
@@ -55,7 +56,7 @@
                     Connect LinkedIn
                 </button>
                 <p class="text-xs text-slate-500 dark:text-slate-400">
-                    This button will later open the extension or connection flow.
+                    Opens the Chrome extension if installed.
                 </p>
             </div>
         </div>
@@ -118,21 +119,21 @@
                 <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                         <div class="flex items-center gap-3">
-                            @if(!empty($profile['profile_image_url']))
-                                <img src="{{ $profile['profile_image_url'] }}"
-                                     alt="{{ $profile['name'] ?? 'LinkedIn' }}"
+                            @if(!empty($displayImg))
+                                <img src="{{ $displayImg }}"
+                                     alt="{{ $displayName }}"
                                      class="h-11 w-11 rounded-full object-cover border border-slate-200 dark:border-slate-700">
                             @else
                                 <div class="h-11 w-11 rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-sm font-semibold text-white shadow">
-                                    {{ strtoupper(substr($profile['name'] ?? 'LI', 0, 2)) }}
+                                    {{ strtoupper(substr($displayName, 0, 2)) }}
                                 </div>
                             @endif
 
                             <div>
                                 <div class="text-sm font-semibold text-slate-800 dark:text-slate-50">
-                                    {{ $profile['name'] ?? 'LinkedIn profile' }}
+                                    {{ $displayName }}
                                 </div>
-                                @if(!empty($profile['headline']))
+                                @if(!empty($profile['headline']) && Str::lower(trim((string)$profile['headline'])) !== 'unknown')
                                     <div class="text-xs text-slate-500 dark:text-slate-400">
                                         {{ $profile['headline'] }}
                                     </div>
@@ -140,7 +141,7 @@
                                 @if(!empty($profile['public_url']))
                                     <a href="{{ $profile['public_url'] }}" target="_blank"
                                        class="inline-flex items-center mt-1 text-[11px] text-slate-500 dark:text-slate-400 hover:text-indigo-500 cursor-pointer">
-                                        View on LinkedIn
+                                        {{ $displayName }} on LinkedIn
                                     </a>
                                 @endif
                             </div>
@@ -153,6 +154,15 @@
                                            bg-slate-900 text-slate-50 border border-slate-700
                                            transition transform duration-200 hover:scale-[var(--hover-scale)]">
                                 Sync now
+                            </button>
+
+                            <button type="button"
+                                    id="btnOpenExtension"
+                                    class="px-3 py-1.5 rounded-full text-xs font-semibold shadow-md cursor-pointer
+                                           border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900
+                                           text-slate-700 dark:text-slate-100
+                                           transition transform duration-200 hover:scale-[var(--hover-scale)]">
+                                Open extension
                             </button>
 
                             @if(Route::has('user.linkedin.analytics.index'))
@@ -338,7 +348,7 @@
 
                     @if(!$hasAudienceData)
                         <p class="text-xs text-slate-500 dark:text-slate-400">
-                            Once you sync audience analytics, your top locations, industries and creator metrics will appear here.
+                            Once you sync audience analytics, your top segments and creator metrics will appear here.
                         </p>
                     @else
                         <div class="space-y-2 text-[11px] text-slate-500 dark:text-slate-400">
@@ -358,90 +368,7 @@
                                 </span>
                             </div>
                         </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                            @if(!empty($topLocations))
-                                <div class="rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3">
-                                    <div class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
-                                        Top locations
-                                    </div>
-                                    <ul class="text-[11px] text-slate-600 dark:text-slate-200 space-y-1">
-                                        @foreach(array_slice($topLocations, 0, 3) as $item)
-                                            <li class="flex items-center justify-between">
-                                                <span>{{ $item['label'] ?? 'Unknown' }}</span>
-                                                @if(!is_null($item['value'] ?? null))
-                                                    <span class="font-medium">{{ number_format((float) $item['value']) }}</span>
-                                                @endif
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                </div>
-                            @endif
-
-                            @if(!empty($topIndustries))
-                                <div class="rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3">
-                                    <div class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
-                                        Top industries
-                                    </div>
-                                    <ul class="text-[11px] text-slate-600 dark:text-slate-200 space-y-1">
-                                        @foreach(array_slice($topIndustries, 0, 3) as $item)
-                                            <li class="flex items-center justify-between">
-                                                <span>{{ $item['label'] ?? 'Unknown' }}</span>
-                                                @if(!is_null($item['value'] ?? null))
-                                                    <span class="font-medium">{{ number_format((float) $item['value']) }}</span>
-                                                @endif
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                </div>
-                            @endif
-                        </div>
-
-                        @if(!empty($creatorMetrics))
-                            <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
-                                <div class="flex items-center justify-between mb-2">
-                                    <p class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                                        Creator metrics
-                                    </p>
-                                    <p class="text-[11px] text-slate-500 dark:text-slate-400">
-                                        {{ $creatorDate ? 'Snapshot: '.$creatorDate : 'Snapshot: n/a' }}
-                                    </p>
-                                </div>
-
-                                <dl class="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px] text-slate-600 dark:text-slate-200">
-                                    @foreach(array_slice($creatorMetrics, 0, 4) as $metric)
-                                        <div class="flex items-center justify-between">
-                                            <dt>{{ $metric['label'] ?? 'Metric' }}</dt>
-                                            <dd class="font-semibold text-slate-800 dark:text-slate-50">
-                                                {{ number_format((float) ($metric['value'] ?? 0)) }}
-                                            </dd>
-                                        </div>
-                                    @endforeach
-                                </dl>
-                            </div>
-                        @endif
                     @endif
-
-                    <div class="mt-4 flex flex-wrap gap-2 text-xs">
-                        @if(Route::has('user.linkedin.audience_insights.index'))
-                            <a href="{{ route('user.linkedin.audience_insights.index') }}"
-                               class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:scale-[var(--hover-scale)] transition">
-                                Audience Insights
-                            </a>
-                        @endif
-                        @if(Route::has('user.linkedin.demographics.index'))
-                            <a href="{{ route('user.linkedin.demographics.index') }}"
-                               class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:scale-[var(--hover-scale)] transition">
-                                Demographics
-                            </a>
-                        @endif
-                        @if(Route::has('user.linkedin.creator_metrics.index'))
-                            <a href="{{ route('user.linkedin.creator_metrics.index') }}"
-                               class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:scale-[var(--hover-scale)] transition">
-                                Creator Metrics
-                            </a>
-                        @endif
-                    </div>
                 </div>
 
                 {{-- Recent sync activity --}}
@@ -537,56 +464,36 @@
                     @else
                         <div class="space-y-3 text-xs">
                             @foreach($connectionsSample as $connection)
+                                @php
+                                    $cnRaw = trim((string) ($connection['full_name'] ?? ''));
+                                    $connName = ($cnRaw !== '' && Str::lower($cnRaw) !== 'unknown') ? $cnRaw : 'Connection';
+                                @endphp
                                 <div class="flex items-start justify-between rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3">
                                     <div class="flex items-start gap-3">
                                         @if(!empty($connection['profile_image_url']))
                                             <img src="{{ $connection['profile_image_url'] }}"
-                                                 alt="{{ $connection['full_name'] ?? 'Connection' }}"
+                                                 alt="{{ $connName }}"
                                                  class="h-8 w-8 rounded-full object-cover border border-slate-200 dark:border-slate-700">
                                         @else
                                             <div class="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-[10px] font-semibold text-white shadow">
-                                                {{ strtoupper(substr($connection['full_name'] ?? 'CN', 0, 2)) }}
+                                                {{ strtoupper(substr($connName, 0, 2)) }}
                                             </div>
                                         @endif
 
                                         <div>
                                             <div class="text-[13px] font-semibold text-slate-800 dark:text-slate-50">
-                                                {{ $connection['full_name'] ?? 'Connection' }}
+                                                {{ $connName }}
                                             </div>
 
-                                            @if(!empty($connection['headline']))
+                                            @if(!empty($connection['headline']) && Str::lower(trim((string)$connection['headline'])) !== 'unknown')
                                                 <div class="text-[11px] text-slate-500 dark:text-slate-400">
                                                     {{ Str::limit($connection['headline'], 70) }}
                                                 </div>
                                             @endif
-
-                                            <div class="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                                                @if(!empty($connection['location']))
-                                                    <span>{{ $connection['location'] }}</span>
-                                                @endif
-
-                                                @if(!empty($connection['industry']))
-                                                    <span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                                                        {{ $connection['industry'] }}
-                                                    </span>
-                                                @endif
-
-                                                @if(!empty($connection['mutual_connections_count']))
-                                                    <span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                                                        {{ number_format((int) $connection['mutual_connections_count']) }} mutual
-                                                    </span>
-                                                @endif
-                                            </div>
                                         </div>
                                     </div>
 
                                     <div class="flex flex-col items-end gap-1">
-                                        @if(!empty($connection['connected_at']))
-                                            <span class="text-[10px] text-slate-500 dark:text-slate-400">
-                                                {{ Carbon::parse($connection['connected_at'])->diffForHumans() }}
-                                            </span>
-                                        @endif
-
                                         @if(!empty($connection['profile_url']))
                                             <a href="{{ $connection['profile_url'] }}" target="_blank"
                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
@@ -620,6 +527,50 @@
 @endsection
 
 @push('scripts')
+@if(($summary['status'] ?? 'empty') === 'ok' || ($summary['status'] ?? 'empty') === 'empty')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const EXT_ID   = @json($extensionId);
+    const EXT_URL  = @json($extensionUrl);
+    const STORE_URL= @json($storeUrl);
+
+    function promptInstall() {
+        const ok = confirm('Chrome extension is not installed. Do you want to install it now?');
+        if (ok && STORE_URL) window.open(STORE_URL, '_blank', 'noopener,noreferrer');
+    }
+
+    async function canOpenExtension() {
+        if (!EXT_ID || !EXT_URL) return false;
+        try {
+            const res = await fetch(EXT_URL, { method: 'GET' });
+            return !!res;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    async function openExtension(action) {
+        if (!EXT_URL) return promptInstall();
+
+        const ok = await canOpenExtension();
+        if (!ok) return promptInstall();
+
+        const url = action ? (EXT_URL + '?action=' + encodeURIComponent(action)) : EXT_URL;
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    const btnConnect = document.getElementById('btnConnectLinkedin');
+    if (btnConnect) btnConnect.addEventListener('click', function () { openExtension('connect'); });
+
+    const btnSync = document.getElementById('btnSyncNow');
+    if (btnSync) btnSync.addEventListener('click', function () { openExtension('sync'); });
+
+    const btnOpen = document.getElementById('btnOpenExtension');
+    if (btnOpen) btnOpen.addEventListener('click', function () { openExtension(''); });
+});
+</script>
+@endif
+
 @if(($summary['status'] ?? 'empty') === 'ok')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -633,6 +584,48 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!labels.length) return;
 
+    function toNumArray(arr, len) {
+        const out = Array.isArray(arr) ? arr.map(v => Number(v) || 0) : [];
+        if (len && out.length !== len) {
+            const filled = new Array(len).fill(0);
+            for (let i = 0; i < Math.min(out.length, len); i++) filled[i] = out[i];
+            return filled;
+        }
+        return out;
+    }
+
+    function bounds(arr, padPct = 0.12) {
+        const a = arr.filter(v => Number.isFinite(v));
+        if (!a.length) return { min: 0, max: 1 };
+
+        let min = Math.min(...a);
+        let max = Math.max(...a);
+
+        if (min === max) {
+            const pad = Math.max(1, Math.round(min * padPct));
+            return { min: Math.max(0, min - pad), max: max + pad };
+        }
+
+        const range = max - min;
+        const pad = range * padPct;
+
+        return {
+            min: Math.max(0, min - pad),
+            max: max + pad
+        };
+    }
+
+    const conn = toNumArray(connectionsData, labels.length);
+    const foll = toNumArray(followersData, labels.length);
+    const views = toNumArray(viewsData, labels.length);
+    const search = toNumArray(searchData, labels.length);
+
+    // Key fix: Do NOT use deltas. Use real numbers, but zoom the Y scale to show growth clearly.
+    const bConn = bounds(conn, 0.15);
+    const bFoll = bounds(foll, 0.15);
+    const bViews = bounds(views, 0.20);
+    const bSearch = bounds(search, 0.20);
+
     const rootStyle      = getComputedStyle(document.documentElement);
     const colorPrimary   = rootStyle.getPropertyValue('--color-primary').trim()   || '#4f46e5';
     const colorSecondary = rootStyle.getPropertyValue('--color-secondary').trim() || '#0ea5e9';
@@ -644,14 +637,12 @@ document.addEventListener('DOMContentLoaded', function () {
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
-            legend: {
-                labels: { color: textColor, font: { size: 11 } }
-            },
+            legend: { labels: { color: textColor, font: { size: 11 } } },
             tooltip: {
                 callbacks: {
                     label: function(context) {
                         const label = context.dataset.label || '';
-                        const value = context.parsed.y ?? 0;
+                        const value = Number(context.parsed.y ?? 0);
                         return label + ': ' + value.toLocaleString();
                     }
                 }
@@ -665,7 +656,7 @@ document.addEventListener('DOMContentLoaded', function () {
             y: {
                 ticks: { color: textColor },
                 grid: { color: 'rgba(148,163,184,0.25)' },
-                beginAtZero: true
+                beginAtZero: false
             }
         }
     };
@@ -679,27 +670,47 @@ document.addEventListener('DOMContentLoaded', function () {
                 datasets: [
                     {
                         label: 'Connections',
-                        data: connectionsData,
+                        data: conn,
                         borderColor: colorPrimary,
-                        backgroundColor: colorPrimary + '33',
+                        backgroundColor: 'rgba(79,70,229,0.12)',
                         borderWidth: 2,
                         fill: true,
-                        tension: 0.3,
-                        pointRadius: 0
+                        tension: 0.45,
+                        pointRadius: 2,
+                        yAxisID: 'y'
                     },
                     {
                         label: 'Followers',
-                        data: followersData,
+                        data: foll,
                         borderColor: colorSecondary,
-                        backgroundColor: colorSecondary + '33',
+                        backgroundColor: 'rgba(14,165,233,0.10)',
                         borderWidth: 2,
                         fill: true,
-                        tension: 0.3,
-                        pointRadius: 0
+                        tension: 0.45,
+                        pointRadius: 2,
+                        yAxisID: 'y1'
                     }
                 ]
             },
-            options: commonOptions
+            options: {
+                ...commonOptions,
+                scales: {
+                    ...commonOptions.scales,
+                    y: {
+                        ...commonOptions.scales.y,
+                        suggestedMin: bConn.min,
+                        suggestedMax: bConn.max
+                    },
+                    y1: {
+                        position: 'right',
+                        ticks: { color: textColor },
+                        grid: { drawOnChartArea: false },
+                        beginAtZero: false,
+                        suggestedMin: bFoll.min,
+                        suggestedMax: bFoll.max
+                    }
+                }
+            }
         });
     }
 
@@ -712,27 +723,47 @@ document.addEventListener('DOMContentLoaded', function () {
                 datasets: [
                     {
                         label: 'Profile views',
-                        data: viewsData,
+                        data: views,
                         borderColor: colorAccent,
-                        backgroundColor: colorAccent + '33',
+                        backgroundColor: 'rgba(249,115,22,0.10)',
                         borderWidth: 2,
                         fill: true,
-                        tension: 0.3,
-                        pointRadius: 0
+                        tension: 0.45,
+                        pointRadius: 2,
+                        yAxisID: 'y'
                     },
                     {
                         label: 'Search appearances',
-                        data: searchData,
+                        data: search,
                         borderColor: colorSecondary,
-                        backgroundColor: colorSecondary + '33',
+                        backgroundColor: 'rgba(14,165,233,0.10)',
                         borderWidth: 2,
                         fill: true,
-                        tension: 0.3,
-                        pointRadius: 0
+                        tension: 0.45,
+                        pointRadius: 2,
+                        yAxisID: 'y1'
                     }
                 ]
             },
-            options: commonOptions
+            options: {
+                ...commonOptions,
+                scales: {
+                    ...commonOptions.scales,
+                    y: {
+                        ...commonOptions.scales.y,
+                        suggestedMin: bViews.min,
+                        suggestedMax: bViews.max
+                    },
+                    y1: {
+                        position: 'right',
+                        ticks: { color: textColor },
+                        grid: { drawOnChartArea: false },
+                        beginAtZero: false,
+                        suggestedMin: bSearch.min,
+                        suggestedMax: bSearch.max
+                    }
+                }
+            }
         });
     }
 });

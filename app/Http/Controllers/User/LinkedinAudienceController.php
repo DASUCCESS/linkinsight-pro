@@ -13,21 +13,6 @@ class LinkedinAudienceController extends Controller
     ) {
     }
 
-    public function insights(Request $request)
-    {
-        $user = $request->user();
-
-        $profileId = $request->query('profile_id') ? (int) $request->query('profile_id') : null;
-        $from      = $request->query('from');
-        $to        = $request->query('to');
-
-        $data = $this->analyticsService->getAudienceInsightsForUser($user, $profileId, $from, $to);
-
-        return view('user.linkedin.audience.insights', [
-            'data' => $data,
-        ]);
-    }
-
     public function demographics(Request $request)
     {
         $user = $request->user();

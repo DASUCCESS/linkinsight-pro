@@ -119,6 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const apiStatusText = document.getElementById('apiStatusText');
   const statusEl = document.getElementById('status');
 
+  const refreshBtn = document.getElementById('refreshBtn');
+
   const openProfileBtn = document.getElementById('openProfileBtn');
   const openActivityBtn = document.getElementById('openActivityBtn');
   const openCreatorContentBtn = document.getElementById('openCreatorContentBtn');
@@ -222,10 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getProfileUrlForPayload(tabUrl, cb) {
-    // Priority:
-    // 1) saved profile URL
-    // 2) derive from current tab URL if it's /in/<id>/...
-    // 3) null
     getSavedProfileUrl(saved => {
       if (saved) {
         cb(saved);
@@ -262,26 +260,53 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pt === 'Connections') syncConnectionsBtn.disabled = false;
   }
 
-  // Detect current tab
-  getActiveTab(tab => {
-    if (!tab) {
-      currentUrlText.textContent = 'No active tab';
-      pageTypeBadge.textContent = 'No tab';
-      setButtonStatesByPageType('None');
-      return;
-    }
+  function updateContextFromActiveTab() {
+    getActiveTab(tab => {
+      if (!tab) {
+        currentUrlText.textContent = 'No active tab';
+        pageTypeBadge.textContent = 'No tab';
+        setButtonStatesByPageType('None');
+        return;
+      }
 
-    const url = tab.url || '';
-    currentUrlText.textContent = url;
+      const url = tab.url || '';
+      currentUrlText.textContent = url;
 
-    currentPageType = detectPageType(url);
-    pageTypeBadge.textContent = currentPageType;
+      currentPageType = detectPageType(url);
+      pageTypeBadge.textContent = currentPageType;
 
-    // opportunistic save profile url when possible
-    ensureProfileUrlSavedFromTab(url);
+      ensureProfileUrlSavedFromTab(url);
+      setButtonStatesByPageType(currentPageType);
+    });
+  }
 
-    setButtonStatesByPageType(currentPageType);
-  });
+  // Detect current tab (initial load)
+  updateContextFromActiveTab();
+
+  // Refresh tab
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      setStatus('Refreshing tab...', 'info');
+      refreshBtn.disabled = true;
+
+      getActiveTab(tab => {
+        if (!tab || !tab.id) {
+          setStatus('No active tab to refresh.', 'error');
+          refreshBtn.disabled = false;
+          return;
+        }
+
+        chrome.tabs.reload(tab.id, {}, () => {
+          // Give LinkedIn a moment to re-render before we re-detect
+          setTimeout(() => {
+            updateContextFromActiveTab();
+            setStatus('Tab refreshed. If LinkedIn finished loading, sync now.', 'success');
+            refreshBtn.disabled = false;
+          }, 900);
+        });
+      });
+    });
+  }
 
   // Open options
   if (openOptionsLink) {

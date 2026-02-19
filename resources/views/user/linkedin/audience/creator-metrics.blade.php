@@ -10,6 +10,20 @@
     $latest  = $data['latest'] ?? null;
     $history = $data['history'] ?? null;
     $filter  = $data['filter'] ?? [];
+
+    $rawName = trim((string)($profile['name'] ?? ''));
+    $isUnknownName = $rawName === '' || strtolower($rawName) === 'unknown';
+
+    $rawLinkedinId = trim((string)($profile['linkedin_id'] ?? ''));
+    $linkedinId = ($rawLinkedinId === '' || strtolower($rawLinkedinId) === 'unknown') ? null : $rawLinkedinId;
+
+    $displayName = $isUnknownName ? ($linkedinId ?: 'LinkedIn profile') : $rawName;
+
+    $rawHeadline = trim((string)($profile['headline'] ?? ''));
+    $headline = ($rawHeadline === '' || strtolower($rawHeadline) === 'unknown') ? null : $rawHeadline;
+
+    $initialsSource = $displayName ?: 'LI';
+    $initials = strtoupper(mb_substr($initialsSource, 0, 2));
 @endphp
 
 @if($status === 'empty')
@@ -25,13 +39,13 @@
                     <img src="{{ $profile['profile_image_url'] }}" class="h-11 w-11 rounded-full object-cover border border-slate-200 dark:border-slate-700" alt="">
                 @else
                     <div class="h-11 w-11 rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-sm font-semibold text-white shadow">
-                        {{ strtoupper(substr($profile['name'] ?? 'LI', 0, 2)) }}
+                        {{ $initials }}
                     </div>
                 @endif
                 <div>
-                    <div class="text-sm font-semibold text-slate-800 dark:text-slate-50">{{ $profile['name'] ?? 'LinkedIn profile' }}</div>
-                    @if(!empty($profile['headline']))
-                        <div class="text-xs text-slate-500 dark:text-slate-400">{{ $profile['headline'] }}</div>
+                    <div class="text-sm font-semibold text-slate-800 dark:text-slate-50">{{ $displayName }}</div>
+                    @if($headline)
+                        <div class="text-xs text-slate-500 dark:text-slate-400">{{ $headline }}</div>
                     @endif
                 </div>
             </div>

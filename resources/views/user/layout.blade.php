@@ -105,12 +105,6 @@
                     :active="request()->routeIs('user.linkedin.analytics.*')" />
 
                 <x-admin.sidebar-item
-                    :href="route('user.linkedin.audience_insights.index')"
-                    icon="activity"
-                    label="Audience Insights"
-                    :active="request()->routeIs('user.linkedin.audience_insights.*')" />
-
-                <x-admin.sidebar-item
                     :href="route('user.linkedin.demographics.index')"
                     icon="pie-chart"
                     label="Demographics"
@@ -223,12 +217,6 @@
                         icon="bar-chart-2"
                         label="Analytics"
                         :active="request()->routeIs('user.linkedin.analytics.*')" />
-
-                    <x-admin.sidebar-item
-                        :href="route('user.linkedin.audience_insights.index')"
-                        icon="activity"
-                        label="Audience Insights"
-                        :active="request()->routeIs('user.linkedin.audience_insights.*')" />
 
                     <x-admin.sidebar-item
                         :href="route('user.linkedin.demographics.index')"

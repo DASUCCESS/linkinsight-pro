@@ -18,20 +18,14 @@ class LinkedinConnectionsController extends Controller
         $user      = $request->user();
         $profileId = $request->query('profile_id');
 
-        $q        = $request->query('q');
-        $location = $request->query('location');
-        $industry = $request->query('industry');
-        $degree   = $request->query('degree');
-        $from     = $request->query('from');
-        $to       = $request->query('to');
+        $q    = $request->query('q');
+        $from = $request->query('from');
+        $to   = $request->query('to');
 
         $data = $this->analyticsService->getConnectionsForUser(
             user: $user,
             profileId: $profileId ? (int) $profileId : null,
             q: $q,
-            location: $location,
-            industry: $industry,
-            degree: $degree,
             fromDate: $from,
             toDate: $to
         );

@@ -59,7 +59,6 @@ function getSearchParams(url) {
 }
 
 function cleanUrl(url) {
-  // For permalinks and stable identifiers, remove query+hash.
   return stripQueryAndHash(url);
 }
 
@@ -109,6 +108,32 @@ function normalizeText(s) {
   return (s || '').replace(/\s+/g, ' ').trim();
 }
 
+function getMetaContent(selector) {
+  const el = document.querySelector(selector);
+  if (!el) return '';
+  const v = el.getAttribute('content') || '';
+  return normalizeText(v);
+}
+
+function pickText(selectors) {
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    const txt = normalizeText(safeText(el));
+    if (txt) return txt;
+  }
+  return '';
+}
+
+function pickAttr(selectors, attr) {
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    if (!el) continue;
+    const v = el.getAttribute(attr) || (attr === 'src' ? el.src : null);
+    if (v) return v;
+  }
+  return '';
+}
+
 function parseCountFromText(text) {
   if (!text) return null;
   const t = text.replace(/,/g, '').trim();
@@ -153,6 +178,9 @@ function clickSeeMore() {
   });
 }
 
+/**
+ * Scrape profile data, with robust fallbacks for name, headline and location.
+ */
 function scrapeProfileData() {
   const profile = {
     linkedin_id: '',
@@ -161,6 +189,7 @@ function scrapeProfileData() {
     headline: '',
     location: '',
     profile_image_url: '',
+    industry: '',
     connections_count: 0,
     followers_count: 0,
     profile_views: 0,
@@ -175,32 +204,103 @@ function scrapeProfileData() {
     const idMatch = clean.match(/\/in\/([^/]+)/);
     if (idMatch) profile.linkedin_id = idMatch[1];
 
-    const nameEl =
+    // NAME
+    let nameEl =
       document.querySelector('h1.text-heading-xlarge') ||
       document.querySelector('.pv-text-details__left-panel h1') ||
       document.querySelector('main h1');
+
+    if (!nameEl) {
+      nameEl =
+        document.querySelector('main h1 span[dir="ltr"]') ||
+        document.querySelector('h1 span[dir="ltr"]');
+    }
+
     profile.name = normalizeText(safeText(nameEl));
 
-    const headlineEl =
+    if (!profile.name) {
+      const ogTitle = getMetaContent('meta[property="og:title"]');
+      if (ogTitle) {
+        profile.name = ogTitle.split('|')[0].trim();
+      }
+    }
+
+    if (!profile.name && document.title) {
+      profile.name = document.title.split('|')[0].trim();
+    }
+
+    // HEADLINE
+    let headlineEl =
+      document.querySelector('[data-test-id="profile-hero-headline"]') ||
       document.querySelector('.pv-text-details__left-panel .text-body-medium') ||
       document.querySelector('div.text-body-medium.break-words') ||
       document.querySelector('section div.text-body-medium');
+
     profile.headline = normalizeText(safeText(headlineEl));
 
-    const locEl =
+    if (!profile.headline) {
+      const ogDesc =
+        getMetaContent('meta[property="og:description"]') ||
+        getMetaContent('meta[name="description"]');
+
+      if (ogDesc) {
+        const parts = ogDesc.split('|').map(s => s.trim()).filter(Boolean);
+        if (parts.length) {
+          profile.headline = parts[0];
+        } else {
+          profile.headline = ogDesc;
+        }
+      }
+    }
+
+    // LOCATION
+    let locEl =
+      document.querySelector('[data-test-id="profile-hero-primary-location"]') ||
+      document.querySelector('[data-test-id="profile-location"]') ||
       document.querySelector('.pv-text-details__left-panel span.text-body-small.inline.t-black--light.break-words') ||
-      document.querySelector('span.text-body-small.inline.t-black--light.break-words') ||
-      document.querySelector('span.text-body-small.inline.t-black--light');
+      document.querySelector('.pv-text-details__left-panel span.text-body-small.inline.break-words') ||
+      document.querySelector('.pv-text-details__left-panel p.text-body-small.inline.break-words') ||
+      document.querySelector('section div span.text-body-small.inline.t-black--light.break-words') ||
+      document.querySelector('section div p.text-body-small.inline.break-words');
+
     profile.location = normalizeText(safeText(locEl));
 
+    if (!profile.location) {
+      const ogDesc =
+        getMetaContent('meta[property="og:description"]') ||
+        getMetaContent('meta[name="description"]');
+
+      if (ogDesc) {
+        const parts = ogDesc.split('|').map(s => s.trim()).filter(Boolean);
+        if (parts.length > 1) {
+          const candidate = parts[parts.length - 1];
+          if (candidate && /[A-Za-z]/.test(candidate)) {
+            profile.location = candidate;
+          }
+        }
+      }
+    }
+
+    // INDUSTRY
+    const industryEl =
+      document.querySelector('li[data-test-id="profile-industry"] span') ||
+      document.querySelector('.pv-text-details__right-panel li span') ||
+      document.querySelector('.pv-top-card__list-item span') ||
+      null;
+    profile.industry = normalizeText(safeText(industryEl));
+
+    // PROFILE IMAGE
     const imgEl =
       document.querySelector('.pv-top-card-profile-picture__image') ||
       document.querySelector('.pv-top-card__photo img') ||
       document.querySelector('img.profile-photo-edit__preview') ||
       document.querySelector('img.pv-top-card-profile-picture__image');
 
-    if (imgEl) profile.profile_image_url = imgEl.src || imgEl.getAttribute('src') || '';
+    if (imgEl) {
+      profile.profile_image_url = imgEl.src || imgEl.getAttribute('src') || '';
+    }
 
+    // CONNECTIONS / FOLLOWERS
     const topStats = Array.from(
       document.querySelectorAll(
         'a[data-field="topcard_connection"], a[data-field="topcard_followers"], .pv-top-card--list li, .pv-top-card--list-bullet li'
@@ -224,6 +324,7 @@ function scrapeProfileData() {
       if (fol) profile.followers_count = parseCountFromText(fol[1]) || profile.followers_count;
     }
 
+    // PROFILE VIEWS / SEARCH APPEARANCES
     const bodyText = document.body ? document.body.innerText : '';
     const viewsMatch = bodyText.match(/([\d,]+)\s+profile views?/i);
     if (viewsMatch) profile.profile_views = parseInt(viewsMatch[1].replace(/,/g, ''), 10) || 0;
@@ -407,7 +508,6 @@ async function scrapeActivityData() {
     });
   });
 
-  // best-effort profile url: derive from current page
   const pathOnly = getPathOnly(window.location.href);
   const m = (pathOnly + '/').match(/https:\/\/www\.linkedin\.com\/in\/[^/]+\/?/);
   const publicUrl = m ? (m[0].endsWith('/') ? m[0] : m[0] + '/') : null;
@@ -598,72 +698,142 @@ function normalizeCategoryKey(label) {
   return t.replace(/\s+/g, '_').replace(/[^\w_]/g, '').slice(0, 40) || 'unknown';
 }
 
+function extractDemographicsFromJson() {
+  const html = document.documentElement.innerHTML || '';
+  if (!html) return {};
+
+  const text = html
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&');
+
+  const demographics = {};
+
+  const chartRe = /{"dataPoints":\[(.+?)\],"title":\{"textDirection":"USER_LOCALE","text":"([^"]+)"[\s\S]*?},"category":/g;
+
+  let match;
+  while ((match = chartRe.exec(text)) !== null) {
+    const pointsRaw = match[1];
+    const headingText = match[2];
+
+    let points;
+    try {
+      points = JSON.parse(`[${pointsRaw}]`);
+    } catch (e) {
+      continue;
+    }
+
+    const key = normalizeCategoryKey(headingText);
+    const items = [];
+
+    for (const p of points) {
+      if (!p || !p.xLabel || !p.xLabel.text) continue;
+
+      const label = String(p.xLabel.text).trim();
+      if (!label) continue;
+
+      let percent = null;
+
+      if (typeof p.yPercent === 'number') {
+        percent = Math.round(p.yPercent * 1000) / 10;
+      } else if (p.yFormattedValue && typeof p.yFormattedValue.text === 'string') {
+        percent = parsePercent(p.yFormattedValue.text);
+      }
+
+      if (percent == null || isNaN(percent)) continue;
+
+      items.push({ label, percent });
+    }
+
+    if (items.length) {
+      demographics[key] = items;
+    }
+  }
+
+  return demographics;
+}
+
+function collectLinesToItems(lines, maxItems = 25) {
+  const items = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const pct = parsePercent(line);
+
+    if (pct != null) {
+      let name = line.replace(/(\d+(?:\.\d+)?)\s*%/, '').trim();
+      if (name && name.length > 1 && name !== '<' && name !== '-') {
+        items.push({ label: name, percent: pct });
+      }
+      continue;
+    }
+
+    const next = lines[i + 1] || '';
+    const pct2 = parsePercent(next);
+    if (pct2 != null) {
+      const name = line.trim();
+      if (name && name.length > 1 && name !== '<' && name !== '-') {
+        items.push({ label: name, percent: pct2 });
+      }
+      i++;
+    }
+  }
+
+  return items.slice(0, maxItems);
+}
+
 async function scrapeFollowersDemographics() {
   await autoScroll(6, 900);
 
   const snapshotDate = guessTodayDateISO();
-  const demographics = {};
+  let demographics = {};
 
-  const headings = Array.from(document.querySelectorAll('h1,h2,h3,div,span'))
-    .filter(el => {
-      const t = normalizeText(el.innerText || '');
-      return ['Job title', 'Location', 'Industry', 'Seniority', 'Company size', 'Company'].includes(t);
-    })
-    .slice(0, 50);
+  demographics = extractDemographicsFromJson();
 
-  function collectItemsAround(el) {
-    const container = el.closest('section') || el.parentElement || document.body;
-    const lines = (container.innerText || '')
+  if (!Object.keys(demographics).length) {
+    const headings = Array.from(document.querySelectorAll('h1,h2,h3,div,span'))
+      .filter(el => {
+        const t = normalizeText(el.innerText || '');
+        return ['Job title', 'Location', 'Industry', 'Seniority', 'Company size', 'Company'].includes(t);
+      })
+      .slice(0, 50);
+
+    function collectItemsAround(el) {
+      const container = el.closest('section') || el.parentElement || document.body;
+      const lines = (container.innerText || '')
+        .split('\n')
+        .map(normalizeText)
+        .filter(Boolean);
+
+      return collectLinesToItems(lines, 25);
+    }
+
+    headings.forEach(h => {
+      const key = normalizeCategoryKey(normalizeText(h.innerText || ''));
+      const items = collectItemsAround(h);
+      if (items.length) demographics[key] = items;
+    });
+  }
+
+  if (!Object.keys(demographics).length) {
+    const lines = (document.body.innerText || '')
       .split('\n')
       .map(normalizeText)
       .filter(Boolean);
 
-    const items = [];
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const pct = parsePercent(line);
-      if (pct != null) {
-        const name = line.replace(/(\d+(?:\.\d+)?)\s*%/, '').trim();
-        if (name) items.push({ label: name, percent: pct });
-        continue;
-      }
-
-      const next = lines[i + 1] || '';
-      const pct2 = parsePercent(next);
-      if (pct2 != null) {
-        items.push({ label: line, percent: pct2 });
-        i++;
-      }
-    }
-
-    return items.filter(x => x.label && typeof x.percent === 'number').slice(0, 25);
-  }
-
-  headings.forEach(h => {
-    const key = normalizeCategoryKey(normalizeText(h.innerText || ''));
-    const items = collectItemsAround(h);
-    if (items.length) demographics[key] = items;
-  });
-
-  if (!Object.keys(demographics).length) {
-    const lines = (document.body.innerText || '').split('\n').map(normalizeText).filter(Boolean);
-    const items = [];
-    lines.forEach(l => {
-      const pct = parsePercent(l);
-      if (pct != null) {
-        const name = l.replace(/(\d+(?:\.\d+)?)\s*%/, '').trim();
-        if (name && name.length < 80) items.push({ label: name, percent: pct });
-      }
-    });
-    if (items.length) demographics.unknown = items.slice(0, 50);
+    const items = collectLinesToItems(lines, 50);
+    if (items.length) demographics.unknown = items;
   }
 
   let followersCount = 0;
-  const body = document.body ? document.body.innerText : '';
-  const m = body.match(/(\d[\d,\.KMB\+]+)\s+followers?/i);
+  const bodyText = document.body ? document.body.innerText : '';
+  const m = bodyText.match(/(\d[\d,\.KMB\+]+)\s+followers?/i);
   if (m) followersCount = parseCountFromText(m[1]) || 0;
 
-  return { snapshot_date: snapshotDate, followers_count: followersCount, demographics };
+  return {
+    snapshot_date: snapshotDate,
+    followers_count: followersCount,
+    demographics
+  };
 }
 
 function extractPublicIdentifierFromProfileUrl(url) {
@@ -698,11 +868,21 @@ async function scrapeConnectionsDirectory() {
     let img = null;
 
     if (card) {
-      const txt = (card.innerText || '').split('\n').map(normalizeText).filter(Boolean);
+      const txt = (card.innerText || '')
+        .split('\n')
+        .map(normalizeText)
+        .filter(Boolean);
+
       if (txt.length) fullName = txt[0];
       if (txt.length > 1) headline = txt[1];
 
-      location = txt.find(t => /,\s*[A-Za-z]/.test(t) || /\bLagos\b|\bAbuja\b|\bLondon\b|\bNew York\b/i.test(t)) || null;
+      if (txt.length > 2) {
+        location = txt[2];
+      }
+
+      if (!location) {
+        location = txt.find((t, idx) => idx > 0 && /,\s*\S+/.test(t)) || null;
+      }
 
       const imgEl = card.querySelector('img');
       if (imgEl) img = imgEl.src || imgEl.getAttribute('src') || null;

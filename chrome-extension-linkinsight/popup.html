@@ -142,6 +142,22 @@
       margin-top: 10px;
     }
 
+    .refresh-row {
+      margin-top: 10px;
+    }
+
+    .refresh-row button {
+      width: 100%;
+    }
+
+    .divider {
+      height: 1px;
+      background: #1e293b;
+      border: 0;
+      margin: 10px 0 0;
+      opacity: 0.9;
+    }
+
     button {
       border: none;
       cursor: pointer;
@@ -286,6 +302,15 @@
       </div>
     </div>
 
+    <!-- Refresh button separated completely -->
+    <div class="refresh-row">
+      <button id="refreshBtn" class="secondary">
+        <span class="icon">↻</span><span>Refresh tab</span>
+      </button>
+    </div>
+
+    <hr class="divider" />
+
     <div class="buttons-grid">
       <button id="openProfileBtn" class="secondary"><span class="icon">⟶</span><span>Open profile</span></button>
       <button id="openActivityBtn" class="secondary"><span class="icon">⟶</span><span>Open activity</span></button>
@@ -307,6 +332,7 @@
     </div>
 
     <div class="steps">
+      <span>Refresh: use Refresh tab after LinkedIn loads, then sync.</span>
       <span>Profile: open https://www.linkedin.com/in/your-handle/ then Sync profile.</span>
       <span>Posts: open Activity (recent-activity) then Sync posts.</span>
       <span>Creator: open Creator content/audience pages then Sync content/audience.</span>

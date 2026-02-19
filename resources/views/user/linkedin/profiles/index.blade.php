@@ -29,15 +29,14 @@
                         <thead class="bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400">
                         <tr>
                             <th class="px-4 py-2 text-left font-medium">Profile</th>
-                            <th class="px-4 py-2 text-left font-medium">Headline</th>
                             <th class="px-4 py-2 text-left font-medium">LinkedIn ID</th>
                             <th class="px-4 py-2 text-right font-medium">Connections</th>
                             <th class="px-4 py-2 text-right font-medium">Followers</th>
                             <th class="px-4 py-2 text-left font-medium">URL</th>
                             <th class="px-4 py-2 text-left font-medium">Primary</th>
-                            <th class="px-4 py-2 text-right font-medium">Actions</th>
                         </tr>
                         </thead>
+
                         <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                         @foreach($profiles as $profile)
                             @php
@@ -51,9 +50,6 @@
                                     ? ($linkedinId ?: 'LinkedIn profile')
                                     : $rawName;
 
-                                $headline = trim($profile->headline ?? '');
-                                $headline = ($headline === '' || strtolower($headline) === 'unknown') ? null : $headline;
-
                                 $publicUrl = trim($profile->public_url ?? '');
                                 $publicUrl = $publicUrl === '' ? null : $publicUrl;
 
@@ -65,21 +61,25 @@
                             @endphp
 
                             <tr class="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-900/70 transition">
-                                {{-- Profile (avatar + name + url preview) --}}
+
+                                {{-- Profile --}}
                                 <td class="px-4 py-2">
                                     <div class="flex items-center gap-2">
                                         @if(!empty($profile->profile_image_url))
-                                            <img src="{{ $profile->profile_image_url }}" alt="{{ $displayName }}"
+                                            <img src="{{ $profile->profile_image_url }}"
+                                                 alt="{{ $displayName }}"
                                                  class="h-8 w-8 rounded-full object-cover border border-slate-200 dark:border-slate-700">
                                         @else
                                             <div class="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-[11px] font-semibold text-white shadow">
                                                 {{ $initials }}
                                             </div>
                                         @endif
+
                                         <div>
                                             <div class="text-xs font-semibold text-slate-800 dark:text-slate-50">
                                                 {{ $displayName }}
                                             </div>
+
                                             @if($publicUrl)
                                                 <div class="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
                                                     {{ $publicUrl }}
@@ -89,45 +89,39 @@
                                     </div>
                                 </td>
 
-                                {{-- Headline (only if present and not unknown) --}}
-                                <td class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300">
-                                    @if($headline)
-                                        {{ \Illuminate\Support\Str::limit($headline, 60) }}
-                                    @endif
-                                </td>
-
-                                {{-- LinkedIn ID (hidden if empty/unknown) --}}
+                                {{-- LinkedIn ID --}}
                                 <td class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300">
                                     @if($linkedinId)
                                         {{ $linkedinId }}
                                     @endif
                                 </td>
 
-                                {{-- Connections count (hidden if null) --}}
+                                {{-- Connections --}}
                                 <td class="px-4 py-2 text-xs text-right text-slate-800 dark:text-slate-50">
                                     @if(!is_null($connections))
                                         {{ number_format($connections) }}
                                     @endif
                                 </td>
 
-                                {{-- Followers count (hidden if null) --}}
+                                {{-- Followers --}}
                                 <td class="px-4 py-2 text-xs text-right text-slate-800 dark:text-slate-50">
                                     @if(!is_null($followers))
                                         {{ number_format($followers) }}
                                     @endif
                                 </td>
 
-                                {{-- URL open link (only if present) --}}
+                                {{-- URL --}}
                                 <td class="px-4 py-2 text-xs">
                                     @if($publicUrl)
-                                        <a href="{{ $publicUrl }}" target="_blank"
+                                        <a href="{{ $publicUrl }}"
+                                           target="_blank"
                                            class="text-indigo-500 hover:text-indigo-400 cursor-pointer">
                                             Open
                                         </a>
                                     @endif
                                 </td>
 
-                                {{-- Primary badge --}}
+                                {{-- Primary --}}
                                 <td class="px-4 py-2 text-xs">
                                     @if($profile->is_primary)
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
@@ -138,19 +132,6 @@
                                     @endif
                                 </td>
 
-                                {{-- Actions --}}
-                                <td class="px-4 py-2 text-xs text-right">
-                                    <div class="inline-flex items-center gap-2">
-                                        <button type="button"
-                                                class="px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-[11px] cursor-pointer hover:scale-[var(--hover-scale)] transition">
-                                            Set primary
-                                        </button>
-                                        <button type="button"
-                                                class="px-2.5 py-1 rounded-full border border-rose-300 bg-rose-50 text-[11px] text-rose-600 cursor-pointer hover:scale-[var(--hover-scale)] transition">
-                                            Remove
-                                        </button>
-                                    </div>
-                                </td>
                             </tr>
                         @endforeach
                         </tbody>

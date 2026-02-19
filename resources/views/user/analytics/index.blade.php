@@ -12,18 +12,29 @@
         $postsMeta = $summary['posts_overview'] ?? [];
         $filter    = $summary['filter'] ?? [];
 
-        $creatorAudience = $summary['creator_audience'] ?? null;
-        $audMetricDate   = data_get($creatorAudience, 'snapshot_date');
-        $audMetrics      = data_get($creatorAudience, 'metrics', []);
-
+        // keep demographics only
         $demographics    = $summary['audience_demographics'] ?? [];
         $demoDate        = $demographics['snapshot_date'] ?? null;
         $followersCount  = $demographics['followers_count'] ?? null;
         $demoCats        = $demographics['demographics'] ?? [];
 
-        $connectionsSample = $summary['connections_sample'] ?? [];
-        $connectionsList   = is_array($connectionsSample) ? $connectionsSample : [];
-        $connectionsCount  = is_array($connectionsList) ? count($connectionsList) : 0;
+        // normalize profile name to avoid "Unknown" showing
+        $rawName = trim((string) ($profile['name'] ?? ''));
+        $isUnknownName = $rawName === '' || strtolower($rawName) === 'unknown';
+
+        $rawLinkedinId = trim((string) ($profile['linkedin_id'] ?? ''));
+        $linkedinId = ($rawLinkedinId === '' || strtolower($rawLinkedinId) === 'unknown') ? null : $rawLinkedinId;
+
+        $displayName = $isUnknownName ? ($linkedinId ?: 'LinkedIn profile') : $rawName;
+
+        $rawHeadline = trim((string) ($profile['headline'] ?? ''));
+        $headline = ($rawHeadline === '' || strtolower($rawHeadline) === 'unknown') ? null : $rawHeadline;
+
+        $rawPublicUrl = trim((string) ($profile['public_url'] ?? ''));
+        $publicUrl = ($rawPublicUrl === '' || strtolower($rawPublicUrl) === 'unknown') ? null : $rawPublicUrl;
+
+        $initialsSource = $displayName ?: 'LI';
+        $initials = strtoupper(mb_substr($initialsSource, 0, 2));
     @endphp
 
     @if($status === 'empty')
@@ -41,24 +52,24 @@
                 <div class="flex items-center gap-3">
                     @if(!empty($profile['profile_image_url']))
                         <img src="{{ $profile['profile_image_url'] }}"
-                             alt="{{ $profile['name'] ?? 'LinkedIn' }}"
+                             alt="{{ $displayName }}"
                              class="h-11 w-11 rounded-full object-cover border border-slate-200 dark:border-slate-700">
                     @else
                         <div class="h-11 w-11 rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-sm font-semibold text-white shadow">
-                            {{ strtoupper(substr($profile['name'] ?? 'LI', 0, 2)) }}
+                            {{ $initials }}
                         </div>
                     @endif
                     <div>
                         <div class="text-sm font-semibold text-slate-800 dark:text-slate-50">
-                            {{ $profile['name'] ?? 'LinkedIn profile' }}
+                            {{ $displayName }}
                         </div>
-                        @if(!empty($profile['headline']))
+                        @if($headline)
                             <div class="text-xs text-slate-500 dark:text-slate-400">
-                                {{ $profile['headline'] }}
+                                {{ $headline }}
                             </div>
                         @endif
-                        @if(!empty($profile['public_url']))
-                            <a href="{{ $profile['public_url'] }}" target="_blank"
+                        @if($publicUrl)
+                            <a href="{{ $publicUrl }}" target="_blank"
                                class="inline-flex items-center mt-1 text-[11px] text-slate-500 dark:text-slate-400 hover:text-indigo-500 cursor-pointer">
                                 View on LinkedIn
                             </a>
@@ -84,20 +95,7 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 shadow">
-                    <div class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
-                        Connections
-                    </div>
-                    <div class="flex items-end justify-between">
-                        <div class="text-xl font-semibold text-slate-900 dark:text-slate-50">
-                            {{ number_format($profile['connections'] ?? 0) }}
-                        </div>
-                        <div class="text-[11px] {{ ($profile['connections_change'] ?? 0) >= 0 ? 'text-emerald-500' : 'text-rose-500' }}">
-                            {{ ($profile['connections_change'] ?? 0) >= 0 ? '+' : '' }}{{ $profile['connections_change'] ?? 0 }}
-                        </div>
-                    </div>
-                </div>
-
+                {{-- Connections card REMOVED --}}
                 <div class="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 shadow">
                     <div class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
                         Followers
@@ -129,9 +127,7 @@
                         {{ number_format($profile['search_total'] ?? 0) }}
                     </div>
                 </div>
-            </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
                 <div class="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 shadow">
                     <div class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
                         Total posts
@@ -140,6 +136,9 @@
                         {{ number_format($postsMeta['total_posts'] ?? 0) }}
                     </div>
                 </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
                 <div class="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 shadow">
                     <div class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
                         Impressions (range)
@@ -167,50 +166,8 @@
             </div>
         </div>
 
-        {{-- Creator audience analytics --}}
-        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 mb-6">
-            <div class="flex items-center justify-between mb-3">
-                <div>
-                    <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
-                        Creator audience analytics
-                    </h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">
-                        Latest audience metrics captured from LinkedIn.
-                    </p>
-                </div>
-                <div class="text-[11px] text-slate-500 dark:text-slate-400">
-                    {{ $audMetricDate ? 'Snapshot date: ' . $audMetricDate : 'No snapshot date' }}
-                </div>
-            </div>
-
-            @if(empty($audMetrics))
-                <p class="text-sm text-slate-500 dark:text-slate-400">
-                    No audience metrics available yet. Sync Creator audience analytics to populate this section.
-                </p>
-            @else
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                    @foreach($audMetrics as $metric)
-                        @php
-                            $v = $metric['value'] ?? null;
-                        @endphp
-                        <div class="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 shadow">
-                            <div class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
-                                {{ $metric['label'] ?? 'Metric' }}
-                            </div>
-                            <div class="text-xl font-semibold text-slate-900 dark:text-slate-50">
-                                @if(is_numeric($v))
-                                    {{ number_format((float) $v, 0) }}
-                                @elseif(is_array($v) || is_object($v))
-                                    {{ \Illuminate\Support\Str::limit(json_encode($v), 40) }}
-                                @else
-                                    {{ \Illuminate\Support\Str::limit((string) $v, 40) }}
-                                @endif
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            @endif
-        </div>
+        {{-- Creator audience analytics REMOVED --}}
+        {{-- Connections sample REMOVED --}}
 
         {{-- Followers demographics --}}
         <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 mb-6">
@@ -253,14 +210,21 @@
 
                             <div class="space-y-1 text-xs">
                                 @foreach(array_slice($items, 0, 10) as $it)
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-slate-700 dark:text-slate-200 line-clamp-1">
-                                            {{ $it['label'] ?? 'Unknown' }}
-                                        </span>
-                                        <span class="text-slate-500 dark:text-slate-400">
-                                            {{ number_format((float) ($it['percent'] ?? 0), 1) }}%
-                                        </span>
-                                    </div>
+                                    @php
+                                        $label = trim((string) ($it['label'] ?? ''));
+                                        $isUnknownLabel = $label === '' || strtolower($label) === 'unknown';
+                                    @endphp
+
+                                    @if(!$isUnknownLabel)
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-slate-700 dark:text-slate-200 line-clamp-1">
+                                                {{ $label }}
+                                            </span>
+                                            <span class="text-slate-500 dark:text-slate-400">
+                                                {{ number_format((float) ($it['percent'] ?? 0), 1) }}%
+                                            </span>
+                                        </div>
+                                    @endif
                                 @endforeach
                             </div>
 
@@ -272,71 +236,6 @@
                         </div>
                     @endforeach
                 </div>
-            @endif
-        </div>
-
-        {{-- Connections sample --}}
-        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 mb-6">
-            <div class="flex items-center justify-between mb-3">
-                <div>
-                    <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
-                        Connections
-                    </h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">
-                        Synced connections directory (sample).
-                    </p>
-                </div>
-                <div class="text-[11px] text-slate-500 dark:text-slate-400">
-                    Total in sample: {{ number_format($connectionsCount ?? 0) }}
-                </div>
-            </div>
-
-            @if(empty($connectionsList))
-                <p class="text-sm text-slate-500 dark:text-slate-400">
-                    No connections available yet. Sync Connections to populate this section.
-                </p>
-            @else
-                <div class="overflow-x-auto text-xs">
-                    <table class="min-w-full">
-                        <thead class="bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400">
-                        <tr>
-                            <th class="px-3 py-2 text-left font-medium">Name</th>
-                            <th class="px-3 py-2 text-left font-medium">Headline</th>
-                            <th class="px-3 py-2 text-left font-medium">Location</th>
-                            <th class="px-3 py-2 text-right font-medium">Actions</th>
-                        </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-                        @foreach(array_slice($connectionsList, 0, 50) as $c)
-                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/70 transition">
-                                <td class="px-3 py-2 text-slate-800 dark:text-slate-50">
-                                    {{ $c['full_name'] ?? $c['name'] ?? 'Unknown' }}
-                                </td>
-                                <td class="px-3 py-2 text-slate-600 dark:text-slate-300">
-                                    {{ \Illuminate\Support\Str::limit($c['headline'] ?? '', 60) }}
-                                </td>
-                                <td class="px-3 py-2 text-slate-600 dark:text-slate-300">
-                                    {{ $c['location'] ?? 'N/A' }}
-                                </td>
-                                <td class="px-3 py-2 text-right">
-                                    @if(!empty($c['profile_url']))
-                                        <a href="{{ $c['profile_url'] }}" target="_blank"
-                                           class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
-                                            View
-                                        </a>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
-                </div>
-
-                @if(count($connectionsList) > 50)
-                    <p class="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
-                        Showing first 50 connections.
-                    </p>
-                @endif
             @endif
         </div>
 
