@@ -12,7 +12,6 @@
                 <a href="{{ route('home') }}" class="flex items-center gap-2">
                     @if($logoPath)
                         <img src="{{ asset('storage/'.$logoPath) }}" alt="{{ $siteName }}" class="h-8 w-auto object-contain">
-                    @else
                     @endif
                     <span class="text-sm font-semibold text-slate-800">{{ $siteName }}</span>
                 </a>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Page;
+use function theme_view;
 
 class PageController extends Controller
 {
@@ -12,7 +13,10 @@ class PageController extends Controller
         $page = Page::home()->published()->firstOrFail();
         $sections = $page->sections()->visible()->get();
 
-        return view('web.pages.home', compact('page', 'sections'));
+        return view(theme_view('pages.home'), [
+            'page' => $page,
+            'sections' => $sections,
+        ]);
     }
 
     public function show(string $slug)
@@ -21,6 +25,8 @@ class PageController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
-        return view('web.pages.show', compact('page'));
+        return view(theme_view('pages.show'), [
+            'page' => $page,
+        ]);
     }
 }

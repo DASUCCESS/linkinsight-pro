@@ -45,7 +45,7 @@
                            class="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-white shadow-xl cursor-pointer transition transform hover:scale-[var(--hover-scale)]">
                             Start free trial
                         </a>
-                    @endif>
+                    @endif
                     <p class="text-[11px] text-slate-500">
                         No long term contracts. Cancel any time.
                     </p>

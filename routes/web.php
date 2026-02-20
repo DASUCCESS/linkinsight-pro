@@ -20,6 +20,7 @@ use App\Http\Controllers\User\LinkedinConnectionsController;
 use App\Http\Controllers\User\LinkedinSyncJobsController;
 
 use App\Http\Controllers\Extension\TokenController;
+use App\Http\Controllers\Admin\ThemeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -96,6 +97,11 @@ Route::middleware(['auth', 'admin'])
         Route::post('/users/{user}/suspend', [UserController::class, 'suspend'])->name('users.suspend');
 
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+
+        Route::get('/themes', [ThemeController::class, 'index'])->name('themes.index');
+        Route::post('/themes/{theme}/activate', [ThemeController::class, 'activate'])->name('themes.activate');
+        Route::post('/themes/rollback', [ThemeController::class, 'rollback'])->name('themes.rollback');
+        Route::post('/themes/upload', [ThemeController::class, 'upload'])->name('themes.upload');
 
     });
 

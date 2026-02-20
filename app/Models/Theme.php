@@ -12,11 +12,16 @@ class Theme extends Model
         'version',
         'is_active',
         'config',
+        'path',
+        'author',
+        'screenshot',
+        'is_installed',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'config' => 'array',
+        'is_installed' => 'boolean',
     ];
 
     public static function active(): ?self

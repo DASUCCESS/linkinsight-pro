@@ -1,4 +1,4 @@
-{{-- resources/views/layouts/public.blade.php --}}
+{{-- resources/views/themes/modern/layouts/public.blade.php --}}
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -90,19 +90,19 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    @include('layouts.public-styles')
+    @include(theme_view('layouts.public-styles'))
 
     @stack('head')
 </head>
 <body class="font-sans antialiased">
-    <div class="min-h-screen flex flex-col" style="background-color: var(--color-background);">
-        @include('layouts.public-navigation')
+    <div class="min-h-screen flex flex-col modern-body">
+        @include(theme_view('layouts.public-navigation'))
 
         <main class="flex-1">
             @yield('content')
         </main>
 
-        @include('layouts.public-footer')
+        @include(theme_view('layouts.public-footer'))
     </div>
 </body>
 </html>

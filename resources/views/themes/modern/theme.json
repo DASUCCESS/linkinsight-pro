@@ -1,0 +1,37 @@
+{
+  "name": "Modern",
+  "slug": "modern",
+  "version": "1.0.0",
+  "author": "LinkInsight Pro",
+  "description": "A modern SaaS-style landing theme with product-led layout, gradient hero, feature cards, and dynamic CMS sections.",
+  "screenshot": "assets/screenshot.png",
+  "homepage_layout": "modern",
+  "supports": {
+    "dynamic_colors": true,
+    "seo_meta": true,
+    "cms_sections": true,
+    "faq_items": true,
+    "hero_image": true,
+    "responsive": true,
+    "dark_footer": true
+  },
+  "required_views": [
+    "layouts/public.blade.php",
+    "layouts/public-navigation.blade.php",
+    "layouts/public-footer.blade.php",
+    "layouts/public-styles.blade.php",
+    "pages/home.blade.php",
+    "pages/show.blade.php"
+  ],
+  "sections_used": [
+    "hero",
+    "mission",
+    "vision",
+    "problem",
+    "solution",
+    "why_us",
+    "testimonials",
+    "cta",
+    "faq"
+  ]
+}

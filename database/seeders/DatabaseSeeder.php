@@ -9,6 +9,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            ThemeSeeder::class,
             AppearanceSettingsSeeder::class,
             CmsPagesSeeder::class,
         ]);

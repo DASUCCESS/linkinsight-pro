@@ -101,6 +101,11 @@
                 icon="settings"
                 label="Settings"
                 :active="request()->routeIs('admin.settings.*')" />
+            <x-admin.sidebar-item
+                :href="route('admin.themes.index')"
+                icon="layers"
+                label="Themes"
+                :active="request()->routeIs('admin.themes.*')" />
 
             <div class="mt-6 pt-4 border-t border-slate-800">
                 <x-admin.sidebar-item href="#" icon="bell" label="Notifications" :active="false" />
@@ -164,6 +169,12 @@
                 icon="settings"
                 label="Settings"
                 :active="request()->routeIs('admin.settings.*')" />
+
+            <x-admin.sidebar-item
+                :href="route('admin.themes.index')"
+                icon="layers"
+                label="Themes"
+                :active="request()->routeIs('admin.themes.*')" />
 
             <div class="mt-6 pt-4 border-t border-slate-800">
                 <x-admin.sidebar-item href="#" icon="bell" label="Notifications" :active="false" />

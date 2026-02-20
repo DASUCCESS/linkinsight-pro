@@ -1,4 +1,4 @@
-@extends('layouts.public')
+@extends(theme_view('layouts.public'))
 
 @section('content')
     <div class="max-w-3xl mx-auto py-10 px-4">

@@ -1,4 +1,4 @@
-@extends('layouts.public')
+@extends(theme_view('layouts.public'))
 
 @section('content')
     @php
@@ -16,11 +16,11 @@
         $faq          = $sectionsByKey->get('faq');
     @endphp
 
-    @include('web.pages.partials.home-hero', ['hero' => $hero])
-    @include('web.pages.partials.home-mission-vision', ['mission' => $mission, 'vision' => $vision])
-    @include('web.pages.partials.home-why-us', ['whyUs' => $whyUs])
-    @include('web.pages.partials.home-problem-solution', ['problem' => $problem, 'solution' => $solution])
-    @include('web.pages.partials.home-testimonials', ['testimonials' => $testimonials])
-    @include('web.pages.partials.home-cta', ['cta' => $cta])
-    @include('web.pages.partials.home-faq', ['faq' => $faq])
+    @include(theme_view('pages.partials.home-hero'), ['hero' => $hero])
+    @include(theme_view('pages.partials.home-mission-vision'), ['mission' => $mission, 'vision' => $vision])
+    @include(theme_view('pages.partials.home-why-us'), ['whyUs' => $whyUs])
+    @include(theme_view('pages.partials.home-problem-solution'), ['problem' => $problem, 'solution' => $solution])
+    @include(theme_view('pages.partials.home-testimonials'), ['testimonials' => $testimonials])
+    @include(theme_view('pages.partials.home-cta'), ['cta' => $cta])
+    @include(theme_view('pages.partials.home-faq'), ['faq' => $faq])
 @endsection
