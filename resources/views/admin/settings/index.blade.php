@@ -30,12 +30,20 @@
                         <span>SEO</span>
                         <span class="h-6 w-6 rounded-xl flex items-center justify-center bg-slate-100 text-[10px] text-slate-500">03</span>
                     </a>
+
                     <a href="#smtp"
                        class="flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer
                               bg-slate-50 border border-slate-200 text-slate-700
                               transition transform duration-150 hover:bg-sky-50 hover:border-sky-200 hover:shadow-md hover:scale-[var(--hover-scale)]">
                         <span>SMTP</span>
                         <span class="h-6 w-6 rounded-xl flex items-center justify-center bg-slate-100 text-[10px] text-slate-500">04</span>
+                    </a>
+                    <a href="#auth"
+                    class="flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer
+                            bg-slate-50 border border-slate-200 text-slate-700
+                            transition transform duration-150 hover:bg-sky-50 hover:border-sky-200 hover:shadow-md hover:scale-[var(--hover-scale)]">
+                        <span>Auth</span>
+                        <span class="h-6 w-6 rounded-xl flex items-center justify-center bg-slate-100 text-[10px] text-slate-500">05</span>
                     </a>
                 </div>
             </div>
@@ -460,6 +468,54 @@
                     </div>
                 </form>
             </section>
+
+            {{-- Auth --}}
+            <section id="auth" class="bg-white border border-slate-200 rounded-2xl shadow-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-semibold text-slate-800">Auth Settings</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Control registration behavior and email verification.
+                        </p>
+                    </div>
+                    @if(session('status_auth'))
+                        <span class="text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 font-medium">
+                            {{ session('status_auth') }}
+                        </span>
+                    @endif
+                </div>
+
+                <form method="POST" action="{{ route('admin.settings.auth.update') }}" class="space-y-4 text-sm">
+                    @csrf
+
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="flex items-center gap-2">
+                            <input type="hidden" name="require_email_verification" value="0">
+                            <input type="checkbox" name="require_email_verification" value="1"
+                                @checked(old('require_email_verification', $auth['require_email_verification']) ? true : false)
+                                class="rounded border-slate-300 bg-white text-sky-500 focus:ring-sky-500 cursor-pointer">
+                            <div>
+                                <p class="font-semibold text-slate-800">
+                                    Require email verification after registration
+                                </p>
+                                <p class="text-xs text-slate-500 mt-0.5">
+                                    When enabled, new users must confirm their email before full access.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-2">
+                        <button type="submit"
+                                class="px-4 py-2 rounded-full text-sm font-semibold shadow-xl cursor-pointer
+                                    bg-gradient-to-r from-indigo-500 to-sky-500 text-white
+                                    transition transform duration-150 hover:scale-[var(--hover-scale)]">
+                            Save Auth Settings
+                        </button>
+                    </div>
+                </form>
+            </section>
+
 
             {{-- SMTP --}}
             <section id="smtp" class="bg-white border border-slate-200 rounded-2xl shadow-xl p-6">

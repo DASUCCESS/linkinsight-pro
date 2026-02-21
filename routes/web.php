@@ -10,24 +10,19 @@ use App\Http\Controllers\Admin\PageSectionController;
 use App\Http\Controllers\Web\PageController as PublicPageController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\AnalyticsController;
-
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\LinkedinProfileController;
 use App\Http\Controllers\User\AnalyticsController as UserAnalyticsController;
-
 use App\Http\Controllers\User\LinkedinAudienceController;
 use App\Http\Controllers\User\LinkedinConnectionsController;
 use App\Http\Controllers\User\LinkedinSyncJobsController;
-
 use App\Http\Controllers\Extension\TokenController;
 use App\Http\Controllers\Admin\ThemeController;
+use App\Http\Controllers\Auth\RegisteredUserController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
-
+// --------------------------------------------------------------
+// Installer
+// --------------------------------------------------------------
 if (! config('installer.installed')) {
     Route::prefix('installer')
         ->name('installer.')
@@ -56,14 +51,33 @@ if (! config('installer.installed')) {
         });
 }
 
-/**
- * Public CMS homepage
- */
+// --------------------------------------------------------------
+// Public homepage
+// --------------------------------------------------------------
 Route::get('/', [PublicPageController::class, 'home'])->name('home');
 
-/**
- * Admin area
- */
+// --------------------------------------------------------------
+// Admin AUTH (custom login + admin register)
+// --------------------------------------------------------------
+Route::prefix('admin')->name('admin.')->group(function () {
+    // Admin login page (view only, POST still goes to default `login` route)
+    Route::get('/login', function () {
+        return view('admin.auth.login');
+    })->name('login');
+
+    // Admin register page + handler (only existing admins)
+    Route::middleware(['auth', 'admin'])->group(function () {
+        Route::get('/register', [RegisteredUserController::class, 'createAdmin'])
+            ->name('register');
+
+        Route::post('/register', [RegisteredUserController::class, 'storeAdmin'])
+            ->name('register.store');
+    });
+});
+
+// --------------------------------------------------------------
+// Admin area (dashboard, settings, users, etc.)
+// --------------------------------------------------------------
 Route::middleware(['auth', 'admin'])
     ->prefix('admin')
     ->name('admin.')
@@ -76,6 +90,7 @@ Route::middleware(['auth', 'admin'])
         Route::post('/settings/seo', [SettingsController::class, 'updateSeo'])->name('settings.seo.update');
         Route::post('/settings/smtp', [SettingsController::class, 'updateSmtp'])->name('settings.smtp.update');
         Route::post('/settings/smtp/test', [SettingsController::class, 'testSmtp'])->name('settings.smtp.test');
+        Route::post('/settings/auth', [SettingsController::class, 'updateAuth'])->name('settings.auth.update');
 
         // CMS page manager
         Route::prefix('cms')->name('cms.')->group(function () {
@@ -102,23 +117,15 @@ Route::middleware(['auth', 'admin'])
         Route::post('/themes/{theme}/activate', [ThemeController::class, 'activate'])->name('themes.activate');
         Route::post('/themes/rollback', [ThemeController::class, 'rollback'])->name('themes.rollback');
         Route::post('/themes/upload', [ThemeController::class, 'upload'])->name('themes.upload');
-
     });
 
-/**
- * Authenticated user dashboard
- */
-// Route::get('/dashboard', [UserDashboardController::class, 'index'])
-//     ->middleware(['auth', 'verified'])
-//     ->name('dashboard');
-
+// --------------------------------------------------------------
+// User area (authenticated)
+// --------------------------------------------------------------
 Route::get('/extension/api-token', TokenController::class)
     ->middleware(['auth'])
     ->name('extension.api-token');
-    
-/**
- * Profile routes
- */
+
 Route::middleware('auth')->group(function () {
 
     // User dashboard
@@ -132,11 +139,11 @@ Route::middleware('auth')->group(function () {
         // User analytics (profile metrics + posts)
         Route::get('/analytics', [UserAnalyticsController::class, 'index'])->name('analytics.index');
 
-        // Demographics (match layout route name)
+        // Demographics
         Route::get('/audience/demographics', [LinkedinAudienceController::class, 'demographics'])
             ->name('demographics.index');
 
-        // Creator metrics (match layout route name)
+        // Creator metrics
         Route::get('/audience/creator-metrics', [LinkedinAudienceController::class, 'creatorMetrics'])
             ->name('creator_metrics.index');
 
@@ -155,15 +162,14 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-/**
- * Auth scaffolding routes (login, register, etc.)
- */
+// --------------------------------------------------------------
+// Auth scaffolding routes (login, register, email verify, etc.)
+// --------------------------------------------------------------
 require __DIR__ . '/auth.php';
 
-/**
- * Catch all CMS pages
- * This must stay at the bottom so it does not override /login, /admin, /dashboard etc.
- */
+// --------------------------------------------------------------
+// Catch all CMS pages
+// --------------------------------------------------------------
 Route::get('/{slug}', [PublicPageController::class, 'show'])
     ->where('slug', '[A-Za-z0-9\-]+')
     ->name('page.show');
