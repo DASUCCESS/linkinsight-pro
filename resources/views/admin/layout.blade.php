@@ -61,9 +61,6 @@
     <aside class="hidden lg:flex flex-col w-64 bg-slate-950 dark:bg-slate-900 border-r border-slate-800">
         <div class="h-20 flex items-center px-6 border-b border-slate-800">
             <div class="flex items-center gap-2">
-                <div class="h-9 w-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-xs font-bold text-white shadow-xl">
-                    LI
-                </div>
                 <div>
                     <div class="text-sm font-semibold tracking-tight text-slate-50">LinkInsight Pro</div>
                     <div class="text-[11px] text-slate-400">Admin dashboard</div>
@@ -128,9 +125,6 @@
            class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-950 dark:bg-slate-900 border-r border-slate-800 transform -translate-x-full transition-transform duration-200 lg:hidden">
         <div class="h-20 flex items-center px-6 border-b border-slate-800">
             <div class="flex items-center gap-2">
-                <div class="h-9 w-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-xs font-bold text-white shadow-xl">
-                    LI
-                </div>
                 <div>
                     <div class="text-sm font-semibold tracking-tight text-slate-50">LinkInsight Pro</div>
                     <div class="text-[11px] text-slate-400">Admin dashboard</div>

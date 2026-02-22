@@ -1,27 +1,26 @@
-@extends('admin.layout')
+@extends('admin.auth-layout')
 
 @section('page_title', 'Admin Login')
 @section('page_subtitle', 'Access the LinkInsight Pro admin console.')
 
 @section('content')
-<div class="flex items-center justify-center min-h-[70vh]">
+<div class="flex items-center justify-center min-h-[70vh] bg-slate-50">
     <div class="w-full max-w-md">
-        <div class="bg-slate-950/80 dark:bg-slate-950 rounded-2xl border border-slate-800 shadow-2xl p-6 lg:p-8">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 lg:p-8">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h1 class="text-base font-semibold text-slate-50">Admin Sign In</h1>
-                    <p class="text-xs text-slate-400 mt-1">
+                    <h1 class="text-base font-semibold text-slate-900">Admin Sign In</h1>
+                    <p class="text-xs text-slate-500 mt-1">
                         Manage users, analytics, themes and platform settings.
                     </p>
                 </div>
             </div>
 
-            {{-- Uses standard Breeze login handler --}}
             <form method="POST" action="{{ route('login') }}" class="space-y-5">
                 @csrf
 
                 <div>
-                    <label for="email" class="block text-xs font-medium text-slate-200">
+                    <label for="email" class="block text-xs font-medium text-slate-700">
                         {{ __('Email') }}
                     </label>
                     <input
@@ -32,22 +31,22 @@
                         required
                         autofocus
                         autocomplete="username"
-                        class="mt-1 block w-full rounded-xl border-slate-700 bg-slate-900 text-sm text-slate-100
+                        class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900
                                focus:border-indigo-500 focus:ring-indigo-500"
                     >
                     @error('email')
-                        <p class="mt-2 text-[11px] text-rose-400">{{ $message }}</p>
+                        <p class="mt-2 text-[11px] text-rose-500">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <div>
                     <div class="flex items-center justify-between">
-                        <label for="password" class="block text-xs font-medium text-slate-200">
+                        <label for="password" class="block text-xs font-medium text-slate-700">
                             {{ __('Password') }}
                         </label>
                         @if (Route::has('password.request'))
                             <a href="{{ route('password.request') }}"
-                               class="text-[11px] font-medium text-sky-400 hover:text-sky-300">
+                               class="text-[11px] font-medium text-sky-600 hover:text-sky-500">
                                 {{ __('Forgot?') }}
                             </a>
                         @endif
@@ -58,11 +57,11 @@
                         name="password"
                         required
                         autocomplete="current-password"
-                        class="mt-1 block w-full rounded-xl border-slate-700 bg-slate-900 text-sm text-slate-100
+                        class="mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900
                                focus:border-indigo-500 focus:ring-indigo-500"
                     >
                     @error('password')
-                        <p class="mt-2 text-[11px] text-rose-400">{{ $message }}</p>
+                        <p class="mt-2 text-[11px] text-rose-500">{{ $message }}</p>
                     @enderror
                 </div>
 
@@ -71,10 +70,10 @@
                         <input
                             id="remember_admin"
                             type="checkbox"
-                            class="rounded border-slate-600 text-indigo-500 shadow-sm focus:ring-indigo-500"
+                            class="rounded border-slate-300 text-indigo-500 shadow-sm focus:ring-indigo-500"
                             name="remember"
                         >
-                        <span class="ms-2 text-[11px] text-slate-300">
+                        <span class="ms-2 text-[11px] text-slate-600">
                             {{ __('Remember this device') }}
                         </span>
                     </label>
