@@ -1,8 +1,6 @@
 <?php
 
 return [
-    'installed' => (bool) env('APP_INSTALLED', false),
-
     'required_php_version' => '8.1',
 
     'required_extensions' => [
