@@ -33,14 +33,6 @@ class EnvironmentManager
 
     }
 
-    public function markInstalled(): void
-    {
-        $this->setEnvValues([
-            'APP_INSTALLED' => 'true',
-        ]);
-
-    }
-
     protected function setEnvValues(array $values): void
     {
         $envPath = base_path('.env');

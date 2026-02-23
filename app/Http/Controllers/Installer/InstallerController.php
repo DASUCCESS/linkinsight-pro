@@ -268,8 +268,6 @@ class InstallerController extends Controller
             ])->withInput();
         }
 
-        $this->environmentManager->markInstalled();
-
         return redirect()->route('installer.finish');
     }
 
