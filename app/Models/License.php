@@ -20,9 +20,9 @@ class License extends Model
     ];
 
     protected $casts = [
-        'last_checked_at' => 'datetime',
-        'support_ends_at' => 'datetime',
-        'is_owner_license' => 'boolean',
+        'last_checked_at'   => 'datetime',
+        'support_ends_at'   => 'datetime',
+        'is_owner_license'  => 'boolean',
     ];
 
     public function isActive(): bool

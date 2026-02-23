@@ -226,32 +226,53 @@ class InstallerController extends Controller
     public function licenseSave(Request $request)
     {
         $validated = $request->validate([
-            'mode'          => 'required|in:codecanyon,external,owner',
-            'purchase_code' => 'nullable|string',
-            'email'         => 'nullable|email',
-            'domain'        => 'required|string',
+            'mode'             => 'required|in:codecanyon,external,owner',
+            'purchase_code'    => 'nullable|string',
+            'verification_code'=> 'nullable|string',
+            'email'            => 'nullable|email',
+            'domain'           => 'required|string',
         ]);
 
-        if ($validated['mode'] === 'owner') {
-            $this->licenseValidator->activateOwnerLicense($validated['domain']);
-        } else {
-            if (! $validated['purchase_code'] || ! $validated['email']) {
+        $mode            = $validated['mode'];
+        $purchaseCode    = $validated['purchase_code'] ?: null;
+        $verificationCode= $validated['verification_code'] ?: null;
+        $email           = $validated['email'] ?? null;
+        $domain          = $validated['domain'];
+
+        if ($mode === 'codecanyon') {
+            if (! $purchaseCode || ! $email) {
                 return back()->withErrors([
-                    'license' => 'Purchase code and email are required for this mode.',
+                    'license' => 'Purchase code and email are required for Envato / CodeCanyon mode.',
                 ]);
             }
+        }
 
-            $this->licenseValidator->activateWithPurchaseCode(
-                $validated['purchase_code'],
-                $validated['email'],
-                $validated['domain']
+        if (in_array($mode, ['external', 'owner'], true)) {
+            if (! $verificationCode) {
+                return back()->withErrors([
+                    'license' => 'A verification code is required for this mode.',
+                ]);
+            }
+        }
+
+        try {
+            $this->licenseValidator->activateLicense(
+                $purchaseCode,
+                $verificationCode,
+                $email,
+                $domain
             );
+        } catch (\Throwable $e) {
+            return back()->withErrors([
+                'license' => $e->getMessage() ?: 'License activation failed.',
+            ])->withInput();
         }
 
         $this->environmentManager->markInstalled();
 
         return redirect()->route('installer.finish');
     }
+
 
     public function finish()
     {
