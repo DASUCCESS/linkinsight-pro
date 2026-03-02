@@ -15,8 +15,6 @@ class LinkedinConnection extends Model
         'public_identifier',
         'profile_url',
         'full_name',
-        'headline',
-        'location',
         'industry',
         'profile_image_url',
         'degree',

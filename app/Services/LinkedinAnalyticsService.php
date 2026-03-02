@@ -284,8 +284,6 @@ class LinkedinAnalyticsService
         $connectionsSampleData = $connectionsSample->map(function (LinkedinConnection $connection) {
             return [
                 'full_name'                => $connection->full_name,
-                'headline'                 => $connection->headline,
-                'location'                 => $connection->location,
                 'industry'                 => $connection->industry,
                 'profile_url'              => $connection->profile_url,
                 'profile_image_url'        => $connection->profile_image_url,
@@ -710,15 +708,12 @@ class LinkedinAnalyticsService
         if ($q) {
             $query->where(function ($qb) use ($q) {
                 $qb->where('full_name', 'like', '%' . $q . '%')
-                    ->orWhere('headline', 'like', '%' . $q . '%')
                     ->orWhere('public_identifier', 'like', '%' . $q . '%')
                     ->orWhere('profile_url', 'like', '%' . $q . '%');
             });
         }
 
-        if ($location) {
-            $query->where('location', 'like', '%' . $location . '%');
-        }
+        // location filtering removed for connections sync payload
 
         if ($industry) {
             $query->where('industry', 'like', '%' . $industry . '%');

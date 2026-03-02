@@ -61,6 +61,8 @@
             </div>
         </div>
     @else
+
+
         {{-- Quick navigation --}}
         <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5 mb-6">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -109,6 +111,39 @@
                         </a>
                     @endif
                 </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+            <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5">
+                <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50 mb-2">AI recommendations</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">AI recommendations summary available.</p>
+                <button type="button" id="btnOpenAiSummary"
+                        class="px-5 py-3 rounded-xl text-sm font-semibold shadow-xl cursor-pointer bg-gradient-to-r from-indigo-500 to-sky-500 text-white">
+                    AI Recommendations Summary Available, View Now
+                </button>
+            </div>
+            <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5">
+                <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50 mb-2">AI engine status</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Status: <span class="font-semibold">{{ strtoupper($aiRecommendations['source'] ?? 'local') }}</span></p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Provider: <span class="font-semibold">Groq</span></p>
+                <a href="{{ route('ai.assistant') }}" class="inline-flex mt-3 px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-600">Open AI page</a>
+            </div>
+        </div>
+
+        <div id="aiSummaryModal" class="hidden fixed inset-0 z-50">
+            <div class="absolute inset-0 bg-black/50" data-close-ai-summary></div>
+            <div class="relative mx-auto mt-20 max-w-3xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl p-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-sm font-semibold">AI Recommendations Summary</h4>
+                    <button type="button" data-close-ai-summary class="px-2 py-1 rounded border text-xs">Close</button>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">{{ $aiRecommendations['summary'] ?? 'No summary available yet.' }}</p>
+                <ul class="text-xs list-disc list-inside space-y-1 text-slate-600 dark:text-slate-300">
+                    @foreach(($aiRecommendations['recommendations'] ?? []) as $item)
+                        <li>{{ $item }}</li>
+                    @endforeach
+                </ul>
             </div>
         </div>
 
@@ -485,9 +520,9 @@
                                                 {{ $connName }}
                                             </div>
 
-                                            @if(!empty($connection['headline']) && Str::lower(trim((string)$connection['headline'])) !== 'unknown')
+                                            @if(!empty($connection['industry']))
                                                 <div class="text-[11px] text-slate-500 dark:text-slate-400">
-                                                    {{ Str::limit($connection['headline'], 70) }}
+                                                    {{ Str::limit($connection['industry'], 70) }}
                                                 </div>
                                             @endif
                                         </div>
@@ -507,20 +542,7 @@
                     @endif
                 </div>
 
-                {{-- Smart recommendations placeholder --}}
-                <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5">
-                    <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50 mb-2">
-                        Smart recommendations
-                    </h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
-                        This block will later show AI-based posting frequency, best times and content recommendations powered by your recent metrics and audience data.
-                    </p>
-                    <ul class="text-xs text-slate-500 dark:text-slate-400 space-y-1 list-disc list-inside">
-                        <li>Uses your last 30 days of profile and posts performance.</li>
-                        <li>Audience segments and creator metrics will refine suggestions.</li>
-                        <li>Suggestions will refresh after each new sync.</li>
-                    </ul>
-                </div>
+
             </div>
         </div>
     @endif
@@ -567,6 +589,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const btnOpen = document.getElementById('btnOpenExtension');
     if (btnOpen) btnOpen.addEventListener('click', function () { openExtension(''); });
+
+    const openAiSummary = document.getElementById('btnOpenAiSummary');
+    const aiSummaryModal = document.getElementById('aiSummaryModal');
+    const closeSummaryEls = document.querySelectorAll('[data-close-ai-summary]');
+    if (openAiSummary && aiSummaryModal) {
+        openAiSummary.addEventListener('click', () => aiSummaryModal.classList.remove('hidden'));
+        closeSummaryEls.forEach((el) => el.addEventListener('click', () => aiSummaryModal.classList.add('hidden')));
+    }
 });
 </script>
 @endif
