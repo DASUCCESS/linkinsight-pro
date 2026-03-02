@@ -35,6 +35,7 @@ class AiAssistantController extends Controller
                 'reply_comment',
                 'connection_message',
                 'improve_post',
+                'article_post',
             ])],
             'input_text' => 'nullable|string|max:5000',
         ]);
