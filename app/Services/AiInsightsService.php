@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Setting;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 
@@ -45,24 +47,27 @@ class AiInsightsService
             return $this->fallback('AI recommendations are currently disabled by the admin.');
         }
 
-        $response = Http::withToken($apiKey)
-            ->timeout(20)
-            ->post('https://api.groq.com/openai/v1/chat/completions', [
-                'model' => $model,
-                'temperature' => $temperature,
-                'max_tokens' => $maxTokens,
-                'response_format' => ['type' => 'json_object'],
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => 'You are a LinkedIn analytics strategist. Return JSON with keys: summary (string), recommendations (array of short strings), insights (array of short strings), risks (array of short strings). Keep suggestions specific and practical.',
+        try {
+            $response = $this->groqHttpClient($apiKey)
+                ->post('https://api.groq.com/openai/v1/chat/completions', [
+                    'model' => $model,
+                    'temperature' => $temperature,
+                    'max_tokens' => $maxTokens,
+                    'response_format' => ['type' => 'json_object'],
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => 'You are a LinkedIn analytics strategist. Return JSON with keys: summary (string), recommendations (array of short strings), insights (array of short strings), risks (array of short strings). Keep suggestions specific and practical.',
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => 'Analyze this analytics context and produce recommendations: ' . json_encode($context),
+                        ],
                     ],
-                    [
-                        'role' => 'user',
-                        'content' => 'Analyze this analytics context and produce recommendations: ' . json_encode($context),
-                    ],
-                ],
-            ]);
+                ]);
+        } catch (ConnectionException|RequestException|\Throwable $e) {
+            return $this->fallback('Groq connection failed. Showing baseline insights until connection is stable.');
+        }
 
         if (! $response->successful()) {
             return $this->fallback('Groq request failed. Showing baseline insights until connection is stable.');
@@ -128,24 +133,27 @@ class AiInsightsService
         $temperature = (float) Setting::getValue('ai', 'temperature', 0.3);
         $maxTokens = (int) Setting::getValue('ai', 'max_tokens', 900);
 
-        $response = Http::withToken($apiKey)
-            ->timeout(20)
-            ->post('https://api.groq.com/openai/v1/chat/completions', [
-                'model' => $model,
-                'temperature' => $temperature,
-                'max_tokens' => $maxTokens,
-                'response_format' => ['type' => 'json_object'],
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => 'You are a LinkedIn growth assistant. Return JSON with key "items" (array of short strings). Keep each item concise, practical, and copy-ready.',
+        try {
+            $response = $this->groqHttpClient($apiKey)
+                ->post('https://api.groq.com/openai/v1/chat/completions', [
+                    'model' => $model,
+                    'temperature' => $temperature,
+                    'max_tokens' => $maxTokens,
+                    'response_format' => ['type' => 'json_object'],
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => 'You are a LinkedIn growth assistant. Return JSON with key "items" (array of short strings). Keep each item concise, practical, and copy-ready.',
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => json_encode($context),
+                        ],
                     ],
-                    [
-                        'role' => 'user',
-                        'content' => json_encode($context),
-                    ],
-                ],
-            ]);
+                ]);
+        } catch (ConnectionException|RequestException|\Throwable $e) {
+            return $this->fallbackAssistant($context['action'] ?? 'weekly_insights');
+        }
 
         if (! $response->successful()) {
             return $this->fallbackAssistant($context['action'] ?? 'weekly_insights');
@@ -182,6 +190,17 @@ class AiInsightsService
             'reposts' => (int) ($postsOverview['reposts_sum'] ?? 0),
             'avg_engagement_rate' => (float) ($postsOverview['avg_engagement_rate'] ?? 0),
         ];
+    }
+
+    protected function groqHttpClient(string $apiKey)
+    {
+        $verifySsl = (bool) env('GROQ_SSL_VERIFY', ! app()->environment('local'));
+
+        return Http::withToken($apiKey)
+            ->timeout(20)
+            ->withOptions([
+                'verify' => $verifySsl,
+            ]);
     }
 
     protected function isAiEnabled(): bool
