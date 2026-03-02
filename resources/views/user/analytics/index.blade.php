@@ -381,6 +381,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const buttons = document.querySelectorAll('.ai-reply-comment-btn');
     if (!buttons.length) return;
 
+    const spinnerMarkup = '<svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><circle class="opacity-30" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle><path class="opacity-90" d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path></svg>';
+
+    function setButtonLoading(button, loading, loadingLabel = 'Regenerating...') {
+        if (!button) return;
+        if (loading) {
+            button.disabled = true;
+            button.dataset.originalLabel = button.dataset.originalLabel || button.textContent.trim();
+            button.innerHTML = `${spinnerMarkup}<span>${loadingLabel}</span>`;
+            return;
+        }
+
+        button.disabled = false;
+        button.textContent = button.dataset.originalLabel || 'Regenerate';
+    }
+
     async function requestReplyIdea(contextText) {
         const res = await fetch(@json(route('dashboard.ai-assistant')), {
             method: 'POST',
@@ -427,17 +442,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const copyEl = document.getElementById('replyAiCopy');
     let currentContext = '';
 
-    async function generateModalReply() {
-        regenEl.textContent = 'Regenerating...';
-        regenEl.disabled = true;
-        const idea = await requestReplyIdea(currentContext);
-        textEl.value = idea;
-        regenEl.textContent = 'Regenerate';
-        regenEl.disabled = false;
+    async function generateModalReply(isRegen = false) {
+        if (isRegen) setButtonLoading(regenEl, true);
+
+        try {
+            const idea = await requestReplyIdea(currentContext);
+            textEl.value = idea;
+        } finally {
+            if (isRegen) setButtonLoading(regenEl, false);
+        }
     }
 
     modal.querySelectorAll('[data-close="1"]').forEach(el => el.addEventListener('click', () => modal.classList.add('hidden')));
-    regenEl.addEventListener('click', async () => { await generateModalReply(); });
+    regenEl.addEventListener('click', async () => { await generateModalReply(true); });
     copyEl.addEventListener('click', async () => { await navigator.clipboard.writeText(textEl.value || ''); });
 
     buttons.forEach((btn) => {
