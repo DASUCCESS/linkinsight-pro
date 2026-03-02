@@ -345,12 +345,20 @@
                                     {{ number_format($latestMetric->reposts ?? 0) }}
                                 </td>
                                 <td class="px-3 py-2 text-right">
-                                    @if($post->permalink)
-                                        <a href="{{ $post->permalink }}" target="_blank"
-                                           class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
-                                            View
-                                        </a>
-                                    @endif
+                                    <div class="inline-flex items-center gap-1">
+                                        <button type="button"
+                                                class="ai-reply-comment-btn inline-flex items-center px-2.5 py-1 rounded-full text-[11px] border border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-200 cursor-pointer hover:scale-[var(--hover-scale)] transition"
+                                                data-context="{{ e(($post->content_excerpt ?: 'LinkedIn post') . ' | type: ' . ($post->post_type ?: 'post')) }}"
+                                                title="Reply comment idea with AI">
+                                            ✨ Reply Idea
+                                        </button>
+                                        @if($post->permalink)
+                                            <a href="{{ $post->permalink }}" target="_blank"
+                                               class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
+                                                View
+                                            </a>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -365,3 +373,50 @@
         </div>
     @endif
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const buttons = document.querySelectorAll('.ai-reply-comment-btn');
+    if (!buttons.length) return;
+
+    async function requestReplyIdea(contextText) {
+        const res = await fetch(@json(route('dashboard.ai-assistant')), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': @json(csrf_token()),
+            },
+            body: JSON.stringify({
+                action: 'reply_comment',
+                input_text: contextText || null,
+            }),
+        });
+
+        if (!res.ok) throw new Error('Request failed');
+        const json = await res.json();
+        return (json?.data?.items || [])[0] || 'No suggestion returned.';
+    }
+
+    buttons.forEach((btn) => {
+        btn.addEventListener('click', async function () {
+            const original = this.textContent;
+            this.textContent = 'Generating...';
+            this.disabled = true;
+
+            try {
+                const idea = await requestReplyIdea(this.getAttribute('data-context'));
+                await navigator.clipboard.writeText(idea);
+                alert('AI reply idea copied:\n\n' + idea);
+            } catch (e) {
+                alert('Could not generate AI reply idea now. Please try again.');
+            } finally {
+                this.textContent = original;
+                this.disabled = false;
+            }
+        });
+    });
+});
+</script>
+@endpush

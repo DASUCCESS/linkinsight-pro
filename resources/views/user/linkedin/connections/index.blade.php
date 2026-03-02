@@ -60,18 +60,27 @@
                             <td class="py-3 text-slate-500 max-w-md truncate">{{ $headline }}</td>
 
                             <td class="py-3 text-right">
-                                @if(!empty($c->profile_url))
-                                    <a href="{{ $c->profile_url }}"
-                                       target="_blank"
-                                       class="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold
-                                              border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900
-                                              text-slate-700 dark:text-slate-100 cursor-pointer
-                                              hover:scale-[var(--hover-scale)] transition shadow">
-                                        View Profile
-                                    </a>
-                                @else
-                                    <span class="text-[11px] text-slate-400">No profile link</span>
-                                @endif
+                                <div class="inline-flex items-center gap-1">
+                                    <button type="button"
+                                            class="ai-compose-msg-btn inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold border border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-200 cursor-pointer hover:scale-[var(--hover-scale)] transition shadow"
+                                            data-name="{{ e($name) }}"
+                                            data-headline="{{ e($headline) }}"
+                                            title="Compose intro message with AI">
+                                        ✨ Compose Message
+                                    </button>
+                                    @if(!empty($c->profile_url))
+                                        <a href="{{ $c->profile_url }}"
+                                           target="_blank"
+                                           class="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold
+                                                  border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900
+                                                  text-slate-700 dark:text-slate-100 cursor-pointer
+                                                  hover:scale-[var(--hover-scale)] transition shadow">
+                                            View Profile
+                                        </a>
+                                    @else
+                                        <span class="text-[11px] text-slate-400">No profile link</span>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -88,3 +97,50 @@
         <div class="mt-4">{{ $data['connections']->links() }}</div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const buttons = document.querySelectorAll('.ai-compose-msg-btn');
+    if (!buttons.length) return;
+
+    async function generateIntro(context) {
+        const res = await fetch(@json(route('dashboard.ai-assistant')), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': @json(csrf_token()),
+            },
+            body: JSON.stringify({ action: 'connection_message', input_text: context })
+        });
+
+        if (!res.ok) throw new Error('Request failed');
+        const payload = await res.json();
+        return (payload?.data?.items || [])[0] || 'Hi, great to connect with you.';
+    }
+
+    buttons.forEach((btn) => {
+        btn.addEventListener('click', async function () {
+            const name = this.getAttribute('data-name') || 'there';
+            const headline = this.getAttribute('data-headline') || '';
+            const context = `Target: ${name}. Headline: ${headline}. Draft a short professional intro message.`;
+            const original = this.textContent;
+            this.textContent = 'Generating...';
+            this.disabled = true;
+
+            try {
+                const message = await generateIntro(context);
+                await navigator.clipboard.writeText(message);
+                alert('AI intro message copied:\n\n' + message + '\n\nOpen LinkedIn message box and paste.');
+            } catch (e) {
+                alert('Could not generate message now.');
+            } finally {
+                this.textContent = original;
+                this.disabled = false;
+            }
+        });
+    });
+});
+</script>
+@endpush

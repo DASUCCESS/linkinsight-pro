@@ -29,18 +29,22 @@
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+        @php
+            $useFixedDashboardTheme = request()->routeIs('dashboard');
+        @endphp
+
         <style>
             :root {
-                --color-primary: {{ app_color('primary_color') }};
-                --color-secondary: {{ app_color('secondary_color') }};
-                --color-accent: {{ app_color('accent_color') }};
-                --color-background: {{ app_color('background_color') }};
-                --color-card: {{ app_color('card_color') }};
-                --color-border: {{ app_color('border_color') }};
-                --color-text-primary: {{ app_color('text_primary') }};
-                --color-text-secondary: {{ app_color('text_secondary') }};
-                --btn-radius: {{ app_color('button_radius', '0.75rem') }};
-                --hover-scale: {{ app_color('hover_scale', '1.05') }};
+                --color-primary: {{ $useFixedDashboardTheme ? '#4f46e5' : app_color('primary_color') }};
+                --color-secondary: {{ $useFixedDashboardTheme ? '#0ea5e9' : app_color('secondary_color') }};
+                --color-accent: {{ $useFixedDashboardTheme ? '#f97316' : app_color('accent_color') }};
+                --color-background: {{ $useFixedDashboardTheme ? '#020617' : app_color('background_color') }};
+                --color-card: {{ $useFixedDashboardTheme ? '#0f172a' : app_color('card_color') }};
+                --color-border: {{ $useFixedDashboardTheme ? '#1e293b' : app_color('border_color') }};
+                --color-text-primary: {{ $useFixedDashboardTheme ? '#e5e7eb' : app_color('text_primary') }};
+                --color-text-secondary: {{ $useFixedDashboardTheme ? '#9ca3af' : app_color('text_secondary') }};
+                --btn-radius: {{ $useFixedDashboardTheme ? '0.75rem' : app_color('button_radius', '0.75rem') }};
+                --hover-scale: {{ $useFixedDashboardTheme ? '1.05' : app_color('hover_scale', '1.05') }};
             }
 
             body {
@@ -335,4 +339,3 @@
     @stack('scripts')
     </body>
     </html>
-

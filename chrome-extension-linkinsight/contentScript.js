@@ -108,6 +108,13 @@ function normalizeText(s) {
   return (s || '').replace(/\s+/g, ' ').trim();
 }
 
+function looksLikeLocation(text) {
+  const t = normalizeText(text).toLowerCase();
+  if (!t || t.length > 80) return false;
+  if (/\b(follower|connection|mutual|message|contact|view profile)\b/.test(t)) return false;
+  return /,/.test(t) || /\b(city|state|country|region|area|remote)\b/.test(t);
+}
+
 function getMetaContent(selector) {
   const el = document.querySelector(selector);
   if (!el) return '';
@@ -279,6 +286,26 @@ function scrapeProfileData() {
           }
         }
       }
+    }
+
+    if (!profile.location) {
+      const candidates = Array.from(document.querySelectorAll('main span, main div, main li'))
+        .map(el => normalizeText(safeText(el)))
+        .filter(Boolean)
+        .slice(0, 140);
+
+      const found = candidates.find(t => looksLikeLocation(t));
+      if (found) profile.location = found;
+    }
+
+    if (!profile.headline) {
+      const candidates = Array.from(document.querySelectorAll('main h2, main h3, main span, main div'))
+        .map(el => normalizeText(safeText(el)))
+        .filter(Boolean)
+        .slice(0, 160);
+
+      const found = candidates.find(t => t.length > 8 && t.length < 140 && !looksLikeLocation(t) && !/follower|connection/i.test(t));
+      if (found) profile.headline = found;
     }
 
     // INDUSTRY
@@ -843,17 +870,41 @@ function extractPublicIdentifierFromProfileUrl(url) {
   return m ? m[1] : null;
 }
 
-async function scrapeConnectionsDirectory() {
-  await autoScroll(12, 900);
+function findNextConnectionsPageButton() {
+  const items = Array.from(document.querySelectorAll('button, a[role="button"]'));
+  return items.find((el) => {
+    const txt = normalizeText(safeText(el)).toLowerCase();
+    const aria = (el.getAttribute('aria-label') || '').toLowerCase();
+    const isNext = txt === 'next' || txt.includes('next page') || aria.includes('next');
+    const disabled = el.disabled || el.getAttribute('aria-disabled') === 'true';
+    return isNext && !disabled;
+  }) || null;
+}
 
-  const profileLinks = Array.from(document.querySelectorAll('a[href*="linkedin.com/in/"]'))
-    .map(a => a.href)
-    .filter(Boolean);
+async function scrapeConnectionsDirectory(options = {}) {
+  const autoPaginate = !!options.autoPaginate;
+  const autoScrollEnabled = options.autoScrollEnabled !== false;
+  const maxPages = Number(options.maxPages || 1);
+
+  const allConnections = [];
+  const seenGlobal = new Set();
+  let page = 0;
+
+  while (page < Math.max(1, maxPages)) {
+    page += 1;
+
+    if (autoScrollEnabled) {
+      await autoScroll(12, 900);
+    }
+
+    const profileLinks = Array.from(document.querySelectorAll('a[href*="linkedin.com/in/"]'))
+      .map(a => a.href)
+      .filter(Boolean);
 
   const uniqueLinks = Array.from(new Set(profileLinks.map(cleanUrl))).slice(0, 1200);
 
-  const connections = [];
-  const seen = new Set();
+    const connections = [];
+    const seen = new Set();
 
   uniqueLinks.forEach(url => {
     if (seen.has(url)) return;
@@ -874,11 +925,8 @@ async function scrapeConnectionsDirectory() {
         .filter(Boolean);
 
       if (txt.length) fullName = txt[0];
-      if (txt.length > 1) headline = txt[1];
-
-      if (txt.length > 2) {
-        location = txt[2];
-      }
+      headline = txt.find((t, idx) => idx > 0 && t.length > 3 && t.length < 140 && !looksLikeLocation(t)) || null;
+      location = txt.find((t, idx) => idx > 0 && looksLikeLocation(t)) || null;
 
       if (!location) {
         location = txt.find((t, idx) => idx > 0 && /,\s*\S+/.test(t)) || null;
@@ -906,7 +954,21 @@ async function scrapeConnectionsDirectory() {
     });
   });
 
-  return connections;
+    for (const row of connections) {
+      if (!row.profile_url || seenGlobal.has(row.profile_url)) continue;
+      seenGlobal.add(row.profile_url);
+      allConnections.push(row);
+    }
+
+    if (!autoPaginate) break;
+
+    const nextBtn = findNextConnectionsPageButton();
+    if (!nextBtn) break;
+    nextBtn.click();
+    await new Promise((r) => setTimeout(r, 1800));
+  }
+
+  return allConnections;
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -1053,7 +1115,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     (async () => {
       try {
-        const connections = await scrapeConnectionsDirectory();
+        const connections = await scrapeConnectionsDirectory(msg.options || {});
         if (!connections.length) {
           sendResponse({ success: false, error: 'NO_DATA' });
           return;

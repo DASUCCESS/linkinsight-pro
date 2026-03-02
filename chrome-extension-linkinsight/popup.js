@@ -136,6 +136,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const syncConnectionsBtn = document.getElementById('syncConnectionsBtn');
 
   const openOptionsLink = document.getElementById('openOptions');
+  const autoRefreshOnOpenEl = document.getElementById('autoRefreshOnOpen');
+  const connectionsAutoPaginateEl = document.getElementById('connectionsAutoPaginate');
+  const connectionsAutoScrollEl = document.getElementById('connectionsAutoScroll');
 
   const profileSummaryDiv = document.getElementById('profileSummary');
   const postsSummaryDiv = document.getElementById('postsSummary');
@@ -280,6 +283,37 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function openOrUpdateTab(targetUrl) {
+    chrome.storage.sync.get(['li_auto_refresh_on_open'], cfg => {
+      const autoRefresh = !!cfg.li_auto_refresh_on_open;
+
+      getActiveTab(tab => {
+        const done = (tabId) => {
+          if (!autoRefresh || !tabId) return;
+          setTimeout(() => {
+            chrome.tabs.reload(tabId, {}, () => setTimeout(updateContextFromActiveTab, 700));
+          }, 900);
+        };
+
+        if (!tab) {
+          chrome.tabs.create({ url: targetUrl }, (newTab) => done(newTab?.id));
+        } else {
+          chrome.tabs.update(tab.id, { url: targetUrl }, (updated) => done(updated?.id || tab.id));
+        }
+      });
+    });
+  }
+
+  chrome.storage.sync.get(['li_auto_refresh_on_open', 'li_connections_auto_paginate', 'li_connections_auto_scroll'], cfg => {
+    if (autoRefreshOnOpenEl) autoRefreshOnOpenEl.checked = !!cfg.li_auto_refresh_on_open;
+    if (connectionsAutoPaginateEl) connectionsAutoPaginateEl.checked = !!cfg.li_connections_auto_paginate;
+    if (connectionsAutoScrollEl) connectionsAutoScrollEl.checked = cfg.li_connections_auto_scroll !== false;
+  });
+
+  if (autoRefreshOnOpenEl) autoRefreshOnOpenEl.addEventListener('change', () => chrome.storage.sync.set({ li_auto_refresh_on_open: !!autoRefreshOnOpenEl.checked }));
+  if (connectionsAutoPaginateEl) connectionsAutoPaginateEl.addEventListener('change', () => chrome.storage.sync.set({ li_connections_auto_paginate: !!connectionsAutoPaginateEl.checked }));
+  if (connectionsAutoScrollEl) connectionsAutoScrollEl.addEventListener('change', () => chrome.storage.sync.set({ li_connections_auto_scroll: !!connectionsAutoScrollEl.checked }));
+
   // Detect current tab (initial load)
   updateContextFromActiveTab();
 
@@ -322,10 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
     openProfileBtn.addEventListener('click', () => {
       getSavedProfileUrl(profileUrl => {
         const targetUrl = profileUrl || 'https://www.linkedin.com/in/';
-        getActiveTab(tab => {
-          if (!tab) chrome.tabs.create({ url: targetUrl });
-          else chrome.tabs.update(tab.id, { url: targetUrl });
-        });
+        openOrUpdateTab(targetUrl);
       });
     });
   }
@@ -334,11 +365,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (openActivityBtn) {
     openActivityBtn.addEventListener('click', () => {
       getActiveTab(tab => {
-        if (!tab) return;
-        const profileUrl = ensureProfileUrlSavedFromTab(tab.url || '');
+        const profileUrl = ensureProfileUrlSavedFromTab(tab?.url || '');
         const base = profileUrl || 'https://www.linkedin.com/in/';
         const activityUrl = base.endsWith('/') ? base + 'recent-activity/all/' : base + '/recent-activity/all/';
-        chrome.tabs.update(tab.id, { url: activityUrl });
+        openOrUpdateTab(activityUrl);
       });
     });
   }
@@ -347,10 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (openCreatorContentBtn) {
     openCreatorContentBtn.addEventListener('click', () => {
       const targetUrl = 'https://www.linkedin.com/analytics/creator/content/';
-      getActiveTab(tab => {
-        if (!tab) chrome.tabs.create({ url: targetUrl });
-        else chrome.tabs.update(tab.id, { url: targetUrl });
-      });
+      openOrUpdateTab(targetUrl);
     });
   }
 
@@ -358,10 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (openCreatorAudienceBtn) {
     openCreatorAudienceBtn.addEventListener('click', () => {
       const targetUrl = 'https://www.linkedin.com/analytics/creator/audience/';
-      getActiveTab(tab => {
-        if (!tab) chrome.tabs.create({ url: targetUrl });
-        else chrome.tabs.update(tab.id, { url: targetUrl });
-      });
+      openOrUpdateTab(targetUrl);
     });
   }
 
@@ -370,10 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
     openDemographicsBtn.addEventListener('click', () => {
       const targetUrl =
         'https://www.linkedin.com/analytics/demographic-detail/urn:li:fsd_profile:profile/?metricType=MEMBER_FOLLOWERS';
-      getActiveTab(tab => {
-        if (!tab) chrome.tabs.create({ url: targetUrl });
-        else chrome.tabs.update(tab.id, { url: targetUrl });
-      });
+      openOrUpdateTab(targetUrl);
     });
   }
 
@@ -381,10 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (openConnectionsBtn) {
     openConnectionsBtn.addEventListener('click', () => {
       const targetUrl = 'https://www.linkedin.com/mynetwork/invite-connect/connections/';
-      getActiveTab(tab => {
-        if (!tab) chrome.tabs.create({ url: targetUrl });
-        else chrome.tabs.update(tab.id, { url: targetUrl });
-      });
+      openOrUpdateTab(targetUrl);
     });
   }
 
@@ -699,7 +717,14 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        chrome.tabs.sendMessage(tab.id, { action: 'scrapeConnections' }, response => {
+        chrome.storage.sync.get(['li_connections_auto_paginate', 'li_connections_auto_scroll'], cfg => {
+          const options = {
+            autoPaginate: !!cfg.li_connections_auto_paginate,
+            autoScrollEnabled: cfg.li_connections_auto_scroll !== false,
+            maxPages: 15,
+          };
+
+          chrome.tabs.sendMessage(tab.id, { action: 'scrapeConnections', options }, response => {
           if (chrome.runtime.lastError) {
             setStatus('Could not read this tab. Refresh and try again.', 'error');
             syncConnectionsBtn.disabled = false;
@@ -732,6 +757,7 @@ document.addEventListener('DOMContentLoaded', () => {
               .finally(() => {
                 syncConnectionsBtn.disabled = false;
               });
+          });
           });
         });
       });
