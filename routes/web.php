@@ -16,6 +16,7 @@ use App\Http\Controllers\User\AnalyticsController as UserAnalyticsController;
 use App\Http\Controllers\User\LinkedinAudienceController;
 use App\Http\Controllers\User\LinkedinConnectionsController;
 use App\Http\Controllers\User\LinkedinSyncJobsController;
+use App\Http\Controllers\User\AiAssistantController;
 use App\Http\Controllers\Extension\TokenController;
 use App\Http\Controllers\Admin\ThemeController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -89,6 +90,7 @@ Route::middleware(['auth', 'admin'])
         Route::post('/settings/smtp', [SettingsController::class, 'updateSmtp'])->name('settings.smtp.update');
         Route::post('/settings/smtp/test', [SettingsController::class, 'testSmtp'])->name('settings.smtp.test');
         Route::post('/settings/auth', [SettingsController::class, 'updateAuth'])->name('settings.auth.update');
+        Route::post('/settings/ai', [SettingsController::class, 'updateAi'])->name('settings.ai.update');
 
         // CMS page manager
         Route::prefix('cms')->name('cms.')->group(function () {
@@ -128,6 +130,7 @@ Route::middleware('auth')->group(function () {
 
     // User dashboard
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
+    Route::post('/dashboard/ai-assistant', [AiAssistantController::class, 'run'])->name('dashboard.ai-assistant');
 
     Route::prefix('user/linkedin')->name('user.linkedin.')->group(function () {
 

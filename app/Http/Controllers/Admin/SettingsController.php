@@ -69,9 +69,18 @@ class SettingsController extends Controller
             'mail_from_name'   => config('mail.from.name'),
         ];
 
+        $ai = [
+            'enabled' => (bool) Setting::getValue('ai', 'enabled', false),
+            'provider' => Setting::getValue('ai', 'provider', 'groq'),
+            'groq_api_key' => Setting::getValue('ai', 'groq_api_key', ''),
+            'groq_model' => Setting::getValue('ai', 'groq_model', 'llama-3.3-70b-versatile'),
+            'temperature' => (string) Setting::getValue('ai', 'temperature', '0.3'),
+            'max_tokens' => (string) Setting::getValue('ai', 'max_tokens', '900'),
+        ];
+
         $license = License::latest('id')->first();
 
-        return view('admin.settings.index', compact('general', 'appearance', 'seo', 'auth', 'smtp', 'license'));
+        return view('admin.settings.index', compact('general', 'appearance', 'seo', 'auth', 'smtp', 'ai', 'license'));
     }
 
     public function updateGeneral(Request $request)
@@ -205,5 +214,26 @@ class SettingsController extends Controller
         Setting::setValue('auth', 'require_email_verification', $value);
 
         return back()->with('status_auth', 'Auth settings updated successfully.');
+    }
+
+    public function updateAi(Request $request)
+    {
+        $validated = $request->validate([
+            'enabled' => ['required', Rule::in(['0', '1'])],
+            'provider' => ['required', Rule::in(['groq'])],
+            'groq_api_key' => 'nullable|string|max:500',
+            'groq_model' => 'required|string|max:120',
+            'temperature' => ['required', 'numeric', 'between:0,2'],
+            'max_tokens' => ['required', 'integer', 'min:128', 'max:4096'],
+        ]);
+
+        Setting::setValue('ai', 'enabled', $validated['enabled'] === '1');
+        Setting::setValue('ai', 'provider', $validated['provider']);
+        Setting::setValue('ai', 'groq_api_key', $validated['groq_api_key'] ?? '');
+        Setting::setValue('ai', 'groq_model', $validated['groq_model']);
+        Setting::setValue('ai', 'temperature', (float) $validated['temperature']);
+        Setting::setValue('ai', 'max_tokens', (int) $validated['max_tokens']);
+
+        return back()->with('status_ai', 'AI settings updated successfully.');
     }
 }

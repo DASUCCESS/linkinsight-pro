@@ -48,6 +48,21 @@
         </div>
     @else
         <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">AI recommendations & analytics insights</h3>
+                <span class="text-[11px] px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                    {{ strtoupper($aiRecommendations['source'] ?? 'local') }}
+                </span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">{{ $aiRecommendations['summary'] ?? 'No AI summary available.' }}</p>
+            <ul class="list-disc list-inside text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                @foreach(($aiRecommendations['recommendations'] ?? []) as $item)
+                    <li>{{ $item }}</li>
+                @endforeach
+            </ul>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 mb-6">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                 <div class="flex items-center gap-3">
                     @if(!empty($profile['profile_image_url']))
