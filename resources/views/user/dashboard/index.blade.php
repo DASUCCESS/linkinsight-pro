@@ -61,79 +61,7 @@
             </div>
         </div>
     @else
-        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5 mb-6">
-            <div class="flex items-center justify-between gap-3 mb-3">
-                <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">AI recommendations</h3>
-                <span class="text-[11px] px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
-                    {{ strtoupper($aiRecommendations['source'] ?? 'local') }}
-                </span>
-            </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">{{ $aiRecommendations['summary'] ?? 'No summary available yet.' }}</p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                <div>
-                    <p class="font-semibold text-slate-700 dark:text-slate-200 mb-1">Recommendations</p>
-                    <ul class="space-y-1 list-disc list-inside text-slate-500 dark:text-slate-400">
-                        @foreach(($aiRecommendations['recommendations'] ?? []) as $item)
-                            <li>{{ $item }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-                <div>
-                    <p class="font-semibold text-slate-700 dark:text-slate-200 mb-1">Insights</p>
-                    <ul class="space-y-1 list-disc list-inside text-slate-500 dark:text-slate-400">
-                        @foreach(($aiRecommendations['insights'] ?? []) as $item)
-                            <li>{{ $item }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-                <div>
-                    <p class="font-semibold text-slate-700 dark:text-slate-200 mb-1">Watchouts</p>
-                    <ul class="space-y-1 list-disc list-inside text-slate-500 dark:text-slate-400">
-                        @foreach(($aiRecommendations['risks'] ?? []) as $item)
-                            <li>{{ $item }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            </div>
-        </div>
 
-        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5 mb-6">
-            <div class="flex items-start justify-between gap-3 mb-3">
-                <div>
-                    <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">AI guided workflow</h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        Use one-click actions to generate concise advice, ideas, and communication drafts based on your synced performance.
-                    </p>
-                </div>
-                <span id="aiAssistantSource" class="text-[11px] px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
-                    READY
-                </span>
-            </div>
-
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs mb-3">
-                <button type="button" class="ai-workflow-btn px-3 py-2 rounded-full border border-slate-300 dark:border-slate-600 font-semibold" data-action="weekly_insights">Generate Weekly Insights</button>
-                <button type="button" class="ai-workflow-btn px-3 py-2 rounded-full border border-slate-300 dark:border-slate-600 font-semibold" data-action="post_ideas">Suggest Post Ideas</button>
-                <button type="button" class="ai-workflow-btn px-3 py-2 rounded-full border border-slate-300 dark:border-slate-600 font-semibold" data-action="write_comment">Write a Comment</button>
-                <button type="button" class="ai-workflow-btn px-3 py-2 rounded-full border border-slate-300 dark:border-slate-600 font-semibold" data-action="reply_comment">Reply to Comment</button>
-                <button type="button" class="ai-workflow-btn px-3 py-2 rounded-full border border-slate-300 dark:border-slate-600 font-semibold" data-action="connection_message">Draft Connection Message</button>
-                <button type="button" class="ai-workflow-btn px-3 py-2 rounded-full border border-slate-300 dark:border-slate-600 font-semibold" data-action="improve_post">Improve My Post</button>
-            </div>
-
-            <textarea id="aiInputText"
-                      rows="3"
-                      placeholder="Optional context (paste a post draft, comment context, or message context to improve results)."
-                      class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-200"></textarea>
-
-            <div class="mt-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-3">
-                <div class="flex items-center justify-between mb-2">
-                    <p id="aiAssistantTitle" class="text-xs font-semibold text-slate-700 dark:text-slate-200">Output</p>
-                    <button type="button" id="copyAiOutputBtn" class="px-2 py-1 rounded-full text-[11px] border border-slate-300 dark:border-slate-600">Copy</button>
-                </div>
-                <ul id="aiAssistantList" class="space-y-1 list-disc list-inside text-xs text-slate-600 dark:text-slate-300">
-                    <li>Choose an action to generate AI output.</li>
-                </ul>
-            </div>
-        </div>
 
         {{-- Quick navigation --}}
         <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5 mb-6">
@@ -183,6 +111,39 @@
                         </a>
                     @endif
                 </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+            <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5">
+                <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50 mb-2">AI recommendations</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">AI recommendations summary available.</p>
+                <button type="button" id="btnOpenAiSummary"
+                        class="px-5 py-3 rounded-xl text-sm font-semibold shadow-xl cursor-pointer bg-gradient-to-r from-indigo-500 to-sky-500 text-white">
+                    AI Recommendations Summary Available, View Now
+                </button>
+            </div>
+            <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5">
+                <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50 mb-2">AI engine status</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Status: <span class="font-semibold">{{ strtoupper($aiRecommendations['source'] ?? 'local') }}</span></p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Provider: <span class="font-semibold">Groq</span></p>
+                <a href="{{ route('ai.assistant') }}" class="inline-flex mt-3 px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-600">Open AI page</a>
+            </div>
+        </div>
+
+        <div id="aiSummaryModal" class="hidden fixed inset-0 z-50">
+            <div class="absolute inset-0 bg-black/50" data-close-ai-summary></div>
+            <div class="relative mx-auto mt-20 max-w-3xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl p-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-sm font-semibold">AI Recommendations Summary</h4>
+                    <button type="button" data-close-ai-summary class="px-2 py-1 rounded border text-xs">Close</button>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">{{ $aiRecommendations['summary'] ?? 'No summary available yet.' }}</p>
+                <ul class="text-xs list-disc list-inside space-y-1 text-slate-600 dark:text-slate-300">
+                    @foreach(($aiRecommendations['recommendations'] ?? []) as $item)
+                        <li>{{ $item }}</li>
+                    @endforeach
+                </ul>
             </div>
         </div>
 
@@ -559,9 +520,9 @@
                                                 {{ $connName }}
                                             </div>
 
-                                            @if(!empty($connection['headline']) && Str::lower(trim((string)$connection['headline'])) !== 'unknown')
+                                            @if(!empty($connection['industry']))
                                                 <div class="text-[11px] text-slate-500 dark:text-slate-400">
-                                                    {{ Str::limit($connection['headline'], 70) }}
+                                                    {{ Str::limit($connection['industry'], 70) }}
                                                 </div>
                                             @endif
                                         </div>
@@ -581,12 +542,7 @@
                     @endif
                 </div>
 
-                <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5">
-                    <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50 mb-2">AI engine status</h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">
-                        Provider: <span class="font-semibold">Groq</span>. Configure API key and model in <span class="font-semibold">Admin → Settings → AI (Groq)</span>.
-                    </p>
-                </div>
+
             </div>
         </div>
     @endif
@@ -634,76 +590,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnOpen = document.getElementById('btnOpenExtension');
     if (btnOpen) btnOpen.addEventListener('click', function () { openExtension(''); });
 
-    const aiButtons = document.querySelectorAll('.ai-workflow-btn');
-    const aiList = document.getElementById('aiAssistantList');
-    const aiTitle = document.getElementById('aiAssistantTitle');
-    const aiSource = document.getElementById('aiAssistantSource');
-    const aiInput = document.getElementById('aiInputText');
-    const copyBtn = document.getElementById('copyAiOutputBtn');
-
-    async function runAiAction(action) {
-        if (!aiList || !aiTitle || !aiSource) return;
-
-        aiSource.textContent = 'LOADING...';
-        aiTitle.textContent = 'Generating...';
-        aiList.innerHTML = '<li>Please wait while AI prepares your output.</li>';
-
-        try {
-            const res = await fetch(@json(route('dashboard.ai-assistant')), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': @json(csrf_token()),
-                },
-                body: JSON.stringify({
-                    action,
-                    input_text: aiInput ? aiInput.value : null,
-                }),
-            });
-
-            if (!res.ok) throw new Error('AI action failed');
-
-            const payload = await res.json();
-            const data = payload?.data || {};
-            const items = Array.isArray(data.items) ? data.items : [];
-
-            aiTitle.textContent = data.title || 'Output';
-            aiSource.textContent = String((data.source || 'local')).toUpperCase();
-
-            if (!items.length) {
-                aiList.innerHTML = '<li>No output returned. Please try again.</li>';
-                return;
-            }
-
-            aiList.innerHTML = items.map((item) => `<li>${String(item)}</li>`).join('');
-        } catch (e) {
-            aiSource.textContent = 'LOCAL';
-            aiTitle.textContent = 'Fallback output';
-            aiList.innerHTML = '<li>Could not generate via API. Please retry.</li>';
-        }
-    }
-
-    aiButtons.forEach((btn) => {
-        btn.addEventListener('click', function () {
-            const action = this.getAttribute('data-action');
-            if (action) runAiAction(action);
-        });
-    });
-
-    if (copyBtn && aiList) {
-        copyBtn.addEventListener('click', async function () {
-            const text = Array.from(aiList.querySelectorAll('li')).map(li => li.textContent?.trim()).filter(Boolean).join('\n');
-            if (!text) return;
-            try {
-                await navigator.clipboard.writeText(text);
-                copyBtn.textContent = 'Copied';
-                setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1200);
-            } catch (e) {
-                copyBtn.textContent = 'Copy failed';
-                setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1200);
-            }
-        });
+    const openAiSummary = document.getElementById('btnOpenAiSummary');
+    const aiSummaryModal = document.getElementById('aiSummaryModal');
+    const closeSummaryEls = document.querySelectorAll('[data-close-ai-summary]');
+    if (openAiSummary && aiSummaryModal) {
+        openAiSummary.addEventListener('click', () => aiSummaryModal.classList.remove('hidden'));
+        closeSummaryEls.forEach((el) => el.addEventListener('click', () => aiSummaryModal.classList.add('hidden')));
     }
 });
 </script>

@@ -109,6 +109,12 @@
                     :active="request()->routeIs('user.linkedin.analytics.*')" />
 
                 <x-admin.sidebar-item
+                    :href="route('ai.assistant')"
+                    icon="bell"
+                    label="AI Assistant"
+                    :active="request()->routeIs('ai.assistant')" />
+
+                <x-admin.sidebar-item
                     :href="route('user.linkedin.demographics.index')"
                     icon="pie-chart"
                     label="Demographics"
@@ -221,6 +227,12 @@
                         icon="bar-chart-2"
                         label="Analytics"
                         :active="request()->routeIs('user.linkedin.analytics.*')" />
+
+                    <x-admin.sidebar-item
+                        :href="route('ai.assistant')"
+                        icon="bell"
+                        label="AI Assistant"
+                        :active="request()->routeIs('ai.assistant')" />
 
                     <x-admin.sidebar-item
                         :href="route('user.linkedin.demographics.index')"

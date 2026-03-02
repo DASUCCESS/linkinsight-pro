@@ -93,10 +93,6 @@ function detectPageType(url) {
   // Any profile activity route: /in/<id>/recent-activity/<category>/
   if (/^https:\/\/www\.linkedin\.com\/in\/[^/]+\/recent-activity\/[^/]+\/?$/.test(pathOnly + '/')) return 'Profile activity';
 
-  // Creator analytics
-  if (/^https:\/\/www\.linkedin\.com\/analytics\/creator\/content\/?$/.test(pathOnly)) return 'Creator content analytics';
-  if (/^https:\/\/www\.linkedin\.com\/analytics\/creator\/audience\/?$/.test(pathOnly)) return 'Creator audience analytics';
-
   // Demographic detail (followers)
   if (/^https:\/\/www\.linkedin\.com\/analytics\/demographic-detail\/urn:li:fsd_profile:profile\/?$/.test(pathOnly)) {
     const sp = getSearchParams(u);
@@ -123,21 +119,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const openProfileBtn = document.getElementById('openProfileBtn');
   const openActivityBtn = document.getElementById('openActivityBtn');
-  const openCreatorContentBtn = document.getElementById('openCreatorContentBtn');
-  const openCreatorAudienceBtn = document.getElementById('openCreatorAudienceBtn');
   const openDemographicsBtn = document.getElementById('openDemographicsBtn');
   const openConnectionsBtn = document.getElementById('openConnectionsBtn');
 
   const syncProfileBtn = document.getElementById('syncProfileBtn');
   const syncPostsBtn = document.getElementById('syncPostsBtn');
-  const syncCreatorContentBtn = document.getElementById('syncCreatorContentBtn');
-  const syncCreatorAudienceBtn = document.getElementById('syncCreatorAudienceBtn');
   const syncDemographicsBtn = document.getElementById('syncDemographicsBtn');
   const syncConnectionsBtn = document.getElementById('syncConnectionsBtn');
 
   const openOptionsLink = document.getElementById('openOptions');
   const autoRefreshOnOpenEl = document.getElementById('autoRefreshOnOpen');
-  const connectionsAutoPaginateEl = document.getElementById('connectionsAutoPaginate');
   const connectionsAutoScrollEl = document.getElementById('connectionsAutoScroll');
 
   const profileSummaryDiv = document.getElementById('profileSummary');
@@ -250,15 +241,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function setButtonStatesByPageType(pt) {
     syncProfileBtn.disabled = true;
     syncPostsBtn.disabled = true;
-    syncCreatorContentBtn.disabled = true;
-    syncCreatorAudienceBtn.disabled = true;
     syncDemographicsBtn.disabled = true;
     syncConnectionsBtn.disabled = true;
 
     if (pt === 'Profile') syncProfileBtn.disabled = false;
     if (pt === 'Profile activity') syncPostsBtn.disabled = false;
-    if (pt === 'Creator content analytics') syncCreatorContentBtn.disabled = false;
-    if (pt === 'Creator audience analytics') syncCreatorAudienceBtn.disabled = false;
     if (pt === 'Followers demographics' || pt === 'Demographic detail') syncDemographicsBtn.disabled = false;
     if (pt === 'Connections') syncConnectionsBtn.disabled = false;
   }
@@ -304,14 +291,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  chrome.storage.sync.get(['li_auto_refresh_on_open', 'li_connections_auto_paginate', 'li_connections_auto_scroll'], cfg => {
+  chrome.storage.sync.get(['li_auto_refresh_on_open', 'li_connections_auto_scroll'], cfg => {
     if (autoRefreshOnOpenEl) autoRefreshOnOpenEl.checked = !!cfg.li_auto_refresh_on_open;
-    if (connectionsAutoPaginateEl) connectionsAutoPaginateEl.checked = !!cfg.li_connections_auto_paginate;
     if (connectionsAutoScrollEl) connectionsAutoScrollEl.checked = cfg.li_connections_auto_scroll !== false;
   });
 
   if (autoRefreshOnOpenEl) autoRefreshOnOpenEl.addEventListener('change', () => chrome.storage.sync.set({ li_auto_refresh_on_open: !!autoRefreshOnOpenEl.checked }));
-  if (connectionsAutoPaginateEl) connectionsAutoPaginateEl.addEventListener('change', () => chrome.storage.sync.set({ li_connections_auto_paginate: !!connectionsAutoPaginateEl.checked }));
   if (connectionsAutoScrollEl) connectionsAutoScrollEl.addEventListener('change', () => chrome.storage.sync.set({ li_connections_auto_scroll: !!connectionsAutoScrollEl.checked }));
 
   // Detect current tab (initial load)
@@ -372,23 +357,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
-
-  // Open creator content analytics
-  if (openCreatorContentBtn) {
-    openCreatorContentBtn.addEventListener('click', () => {
-      const targetUrl = 'https://www.linkedin.com/analytics/creator/content/';
-      openOrUpdateTab(targetUrl);
-    });
-  }
-
-  // Open creator audience analytics
-  if (openCreatorAudienceBtn) {
-    openCreatorAudienceBtn.addEventListener('click', () => {
-      const targetUrl = 'https://www.linkedin.com/analytics/creator/audience/';
-      openOrUpdateTab(targetUrl);
-    });
-  }
-
   // Open followers demographics detail
   if (openDemographicsBtn) {
     openDemographicsBtn.addEventListener('click', () => {
@@ -540,115 +508,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
-
-  // Sync creator content analytics -> /linkedin/sync/posts
-  if (syncCreatorContentBtn) {
-    syncCreatorContentBtn.addEventListener('click', () => {
-      setStatus('Reading creator content analytics from this tab...', 'info');
-      syncCreatorContentBtn.disabled = true;
-
-      getActiveTab(tab => {
-        if (!tab) {
-          setStatus('No active tab. Open Creator content analytics first.', 'error');
-          syncCreatorContentBtn.disabled = false;
-          return;
-        }
-
-        chrome.tabs.sendMessage(tab.id, { action: 'scrapeCreatorContent' }, response => {
-          if (chrome.runtime.lastError) {
-            setStatus('Could not read this tab. Refresh and try again.', 'error');
-            syncCreatorContentBtn.disabled = false;
-            return;
-          }
-
-          if (!response || !response.success) {
-            const code = response && response.error;
-            let friendly = 'Could not read creator content analytics. Refresh the page and try again.';
-            if (code === 'NOT_CREATOR_CONTENT_PAGE') friendly = 'Open https://www.linkedin.com/analytics/creator/content/ then try again.';
-            if (code === 'NO_DATA') friendly = 'No post rows were detected. Scroll a bit and try again.';
-            setStatus(friendly, 'error');
-            syncCreatorContentBtn.disabled = false;
-            return;
-          }
-
-          const payload = response.payload || {};
-          const posts = payload.posts || [];
-
-          showExtraSummary([`Detected rows: ${posts.length}`, `Metric date: ${payload.metric_date || '(auto)'}`]);
-
-          getProfileUrlForPayload(tab.url || '', publicUrl => {
-            setStatus(`Sending ${posts.length} post metrics to LinkInsight Pro...`, 'info');
-
-            postToApi('/api/linkedin/sync/posts', {
-              public_url: publicUrl,
-              metric_date: payload.metric_date || null,
-              posts
-            })
-              .then(() => setStatus(`Creator content synced (${posts.length} rows).`, 'success'))
-              .catch(err => setStatus('Creator content sync failed: ' + err, 'error'))
-              .finally(() => {
-                syncCreatorContentBtn.disabled = false;
-              });
-          });
-        });
-      });
-    });
-  }
-
-  // Sync creator audience analytics -> /linkedin/sync/creator-audience
-  if (syncCreatorAudienceBtn) {
-    syncCreatorAudienceBtn.addEventListener('click', () => {
-      setStatus('Reading creator audience analytics from this tab...', 'info');
-      syncCreatorAudienceBtn.disabled = true;
-
-      getActiveTab(tab => {
-        if (!tab) {
-          setStatus('No active tab. Open Creator audience analytics first.', 'error');
-          syncCreatorAudienceBtn.disabled = false;
-          return;
-        }
-
-        chrome.tabs.sendMessage(tab.id, { action: 'scrapeCreatorAudience' }, response => {
-          if (chrome.runtime.lastError) {
-            setStatus('Could not read this tab. Refresh and try again.', 'error');
-            syncCreatorAudienceBtn.disabled = false;
-            return;
-          }
-
-          if (!response || !response.success) {
-            const code = response && response.error;
-            let friendly = 'Could not read creator audience analytics. Refresh and try again.';
-            if (code === 'NOT_CREATOR_AUDIENCE_PAGE') friendly = 'Open https://www.linkedin.com/analytics/creator/audience/ then try again.';
-            if (code === 'NO_DATA') friendly = 'No audience metrics were detected. Scroll a bit and try again.';
-            setStatus(friendly, 'error');
-            syncCreatorAudienceBtn.disabled = false;
-            return;
-          }
-
-          const payload = response.payload || {};
-          const metricDate = payload.metrics?.metric_date || null;
-          const keysCount = payload.metrics?.data ? Object.keys(payload.metrics.data).length : 0;
-
-          showExtraSummary([`Metric date: ${metricDate || '(auto)'}`, `Captured keys: ${keysCount}`]);
-
-          getProfileUrlForPayload(tab.url || '', publicUrl => {
-            setStatus('Sending creator audience metrics to LinkInsight Pro...', 'info');
-
-            postToApi('/api/linkedin/sync/creator-audience', {
-              public_url: publicUrl,
-              metrics: payload.metrics || { metric_date: metricDate, data: {} }
-            })
-              .then(() => setStatus('Creator audience synced successfully.', 'success'))
-              .catch(err => setStatus('Creator audience sync failed: ' + err, 'error'))
-              .finally(() => {
-                syncCreatorAudienceBtn.disabled = false;
-              });
-          });
-        });
-      });
-    });
-  }
-
   // Sync followers demographics -> /linkedin/sync/audience-demographics
   if (syncDemographicsBtn) {
     syncDemographicsBtn.addEventListener('click', () => {
@@ -717,11 +576,11 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        chrome.storage.sync.get(['li_connections_auto_paginate', 'li_connections_auto_scroll'], cfg => {
+        chrome.storage.sync.get(['li_connections_auto_scroll'], cfg => {
           const options = {
-            autoPaginate: !!cfg.li_connections_auto_paginate,
+            autoPaginate: false,
             autoScrollEnabled: cfg.li_connections_auto_scroll !== false,
-            maxPages: 15,
+            maxPages: 1,
           };
 
           chrome.tabs.sendMessage(tab.id, { action: 'scrapeConnections', options }, response => {

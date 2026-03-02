@@ -399,6 +399,40 @@ document.addEventListener('DOMContentLoaded', function () {
         return (json?.data?.items || [])[0] || 'No suggestion returned.';
     }
 
+    if (!document.getElementById('replyAiModal')) {
+        const modal = document.createElement('div');
+        modal.id = 'replyAiModal';
+        modal.className = 'hidden fixed inset-0 z-50';
+        modal.innerHTML = `
+            <div class="absolute inset-0 bg-black/50" data-close="1"></div>
+            <div class="relative mx-auto mt-20 max-w-2xl bg-white dark:bg-slate-900 rounded-2xl border p-5">
+                <div class="flex justify-between items-center mb-2"><h4 class="text-sm font-semibold">AI Reply Idea</h4><button data-close="1" class="px-2 py-1 border rounded text-xs">Close</button></div>
+                <p id="replyAiContext" class="text-xs text-slate-500 mb-2"></p>
+                <textarea id="replyAiText" rows="6" class="w-full rounded-xl border px-3 py-2 text-sm"></textarea>
+                <div class="flex gap-2 mt-3 justify-end">
+                    <button id="replyAiRegenerate" class="px-3 py-1 rounded border text-xs">Regenerate</button>
+                    <button id="replyAiCopy" class="px-3 py-1 rounded border text-xs">Copy</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    const modal = document.getElementById('replyAiModal');
+    const contextEl = document.getElementById('replyAiContext');
+    const textEl = document.getElementById('replyAiText');
+    const regenEl = document.getElementById('replyAiRegenerate');
+    const copyEl = document.getElementById('replyAiCopy');
+    let currentContext = '';
+
+    async function generateModalReply() {
+        const idea = await requestReplyIdea(currentContext);
+        textEl.value = idea;
+    }
+
+    modal.querySelectorAll('[data-close="1"]').forEach(el => el.addEventListener('click', () => modal.classList.add('hidden')));
+    regenEl.addEventListener('click', async () => { await generateModalReply(); });
+    copyEl.addEventListener('click', async () => { await navigator.clipboard.writeText(textEl.value || ''); });
+
     buttons.forEach((btn) => {
         btn.addEventListener('click', async function () {
             const original = this.textContent;
@@ -406,9 +440,10 @@ document.addEventListener('DOMContentLoaded', function () {
             this.disabled = true;
 
             try {
-                const idea = await requestReplyIdea(this.getAttribute('data-context'));
-                await navigator.clipboard.writeText(idea);
-                alert('AI reply idea copied:\n\n' + idea);
+                currentContext = this.getAttribute('data-context') || '';
+                contextEl.textContent = currentContext;
+                await generateModalReply();
+                modal.classList.remove('hidden');
             } catch (e) {
                 alert('Could not generate AI reply idea now. Please try again.');
             } finally {

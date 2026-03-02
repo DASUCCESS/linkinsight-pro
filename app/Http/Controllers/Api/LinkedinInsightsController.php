@@ -229,8 +229,6 @@ class LinkedinInsightsController extends Controller
         if ($q) {
             $query->where(function ($w) use ($q) {
                 $w->where('full_name', 'like', "%{$q}%")
-                    ->orWhere('headline', 'like', "%{$q}%")
-                    ->orWhere('location', 'like', "%{$q}%")
                     ->orWhere('industry', 'like', "%{$q}%")
                     ->orWhere('profile_url', 'like', "%{$q}%")
                     ->orWhere('public_identifier', 'like', "%{$q}%");

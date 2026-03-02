@@ -130,6 +130,7 @@ Route::middleware('auth')->group(function () {
 
     // User dashboard
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/ai-assistant', [AiAssistantController::class, 'index'])->name('ai.assistant');
     Route::post('/dashboard/ai-assistant', [AiAssistantController::class, 'run'])->name('dashboard.ai-assistant');
 
     Route::prefix('user/linkedin')->name('user.linkedin.')->group(function () {

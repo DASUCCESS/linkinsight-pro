@@ -17,6 +17,14 @@ class AiAssistantController extends Controller
     ) {
     }
 
+    public function index(Request $request)
+    {
+        $summary = $this->analyticsService->getSummaryForUser($request->user(), null);
+        $aiRecommendations = $this->aiInsightsService->forSummary($summary);
+
+        return view('user.ai-assistant.index', compact('summary', 'aiRecommendations'));
+    }
+
     public function run(Request $request): JsonResponse
     {
         $validated = $request->validate([

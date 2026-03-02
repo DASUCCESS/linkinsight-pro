@@ -108,12 +108,6 @@ function normalizeText(s) {
   return (s || '').replace(/\s+/g, ' ').trim();
 }
 
-function looksLikeLocation(text) {
-  const t = normalizeText(text).toLowerCase();
-  if (!t || t.length > 80) return false;
-  if (/\b(follower|connection|mutual|message|contact|view profile)\b/.test(t)) return false;
-  return /,/.test(t) || /\b(city|state|country|region|area|remote)\b/.test(t);
-}
 
 function getMetaContent(selector) {
   const el = document.querySelector(selector);
@@ -894,7 +888,7 @@ async function scrapeConnectionsDirectory(options = {}) {
     page += 1;
 
     if (autoScrollEnabled) {
-      await autoScroll(12, 900);
+      await autoScroll(4, 900);
     }
 
     const profileLinks = Array.from(document.querySelectorAll('a[href*="linkedin.com/in/"]'))
@@ -914,8 +908,6 @@ async function scrapeConnectionsDirectory(options = {}) {
     const card = a ? (a.closest('li') || a.closest('div')) : null;
 
     let fullName = null;
-    let headline = null;
-    let location = null;
     let img = null;
 
     if (card) {
@@ -925,13 +917,6 @@ async function scrapeConnectionsDirectory(options = {}) {
         .filter(Boolean);
 
       if (txt.length) fullName = txt[0];
-      headline = txt.find((t, idx) => idx > 0 && t.length > 3 && t.length < 140 && !looksLikeLocation(t)) || null;
-      location = txt.find((t, idx) => idx > 0 && looksLikeLocation(t)) || null;
-
-      if (!location) {
-        location = txt.find((t, idx) => idx > 0 && /,\s*\S+/.test(t)) || null;
-      }
-
       const imgEl = card.querySelector('img');
       if (imgEl) img = imgEl.src || imgEl.getAttribute('src') || null;
     }
