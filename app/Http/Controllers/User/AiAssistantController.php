@@ -52,4 +52,30 @@ class AiAssistantController extends Controller
             'data' => $payload,
         ]);
     }
+
+    public function chat(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'mode' => ['required', Rule::in(['linkedin_activity', 'brainstorm'])],
+            'message' => 'required|string|max:5000',
+        ]);
+
+        $summary = $this->analyticsService->getSummaryForUser($request->user(), null);
+
+        $action = $validated['mode'] === 'linkedin_activity' ? 'weekly_insights' : 'post_ideas';
+
+        $payload = $this->aiInsightsService->runAssistantAction(
+            $action,
+            $summary,
+            ['input_text' => $validated['message']]
+        );
+
+        return response()->json([
+            'status' => 'ok',
+            'reply' => implode("\n", array_slice((array) ($payload['items'] ?? []), 0, 4)),
+            'items' => $payload['items'] ?? [],
+            'mode' => $validated['mode'],
+            'source' => $payload['source'] ?? 'local',
+        ]);
+    }
 }

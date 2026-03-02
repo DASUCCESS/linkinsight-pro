@@ -132,6 +132,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
     Route::get('/ai-assistant', [AiAssistantController::class, 'index'])->name('ai.assistant');
     Route::post('/dashboard/ai-assistant', [AiAssistantController::class, 'run'])->name('dashboard.ai-assistant');
+    Route::post('/ai-assistant/chat', [AiAssistantController::class, 'chat'])->name('ai.assistant.chat');
 
     Route::prefix('user/linkedin')->name('user.linkedin.')->group(function () {
 

@@ -908,6 +908,7 @@ async function scrapeConnectionsDirectory(options = {}) {
     const card = a ? (a.closest('li') || a.closest('div')) : null;
 
     let fullName = null;
+    let industry = null;
     let img = null;
 
     if (card) {
@@ -917,6 +918,7 @@ async function scrapeConnectionsDirectory(options = {}) {
         .filter(Boolean);
 
       if (txt.length) fullName = txt[0];
+      industry = txt.find((t, idx) => idx > 0 && t.length > 2 && t.length < 90 && !/\d/.test(t) && !/connections?|followers?/i.test(t)) || null;
       const imgEl = card.querySelector('img');
       if (imgEl) img = imgEl.src || imgEl.getAttribute('src') || null;
     }
@@ -928,9 +930,7 @@ async function scrapeConnectionsDirectory(options = {}) {
       public_identifier: publicId,
       profile_url: url,
       full_name: fullName,
-      headline: headline,
-      location: location,
-      industry: null,
+      industry: industry,
       profile_image_url: img,
       degree: null,
       mutual_connections_count: null,

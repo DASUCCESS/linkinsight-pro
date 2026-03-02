@@ -349,6 +349,7 @@
                                         <button type="button"
                                                 class="ai-reply-comment-btn inline-flex items-center px-2.5 py-1 rounded-full text-[11px] border border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-200 cursor-pointer hover:scale-[var(--hover-scale)] transition"
                                                 data-context="{{ e(($post->content_excerpt ?: 'LinkedIn post') . ' | type: ' . ($post->post_type ?: 'post')) }}"
+                                                data-post-url="{{ e($post->permalink) }}"
                                                 title="Reply comment idea with AI">
                                             ✨ Reply Idea
                                         </button>
@@ -410,6 +411,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <p id="replyAiContext" class="text-xs text-slate-500 mb-2"></p>
                 <textarea id="replyAiText" rows="6" class="w-full rounded-xl border px-3 py-2 text-sm"></textarea>
                 <div class="flex gap-2 mt-3 justify-end">
+                    <a id="replyAiViewPost" href="#" target="_blank" class="px-3 py-1 rounded border text-xs">View Post on LinkedIn</a>
                     <button id="replyAiRegenerate" class="px-3 py-1 rounded border text-xs">Regenerate</button>
                     <button id="replyAiCopy" class="px-3 py-1 rounded border text-xs">Copy</button>
                 </div>
@@ -420,13 +422,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('replyAiModal');
     const contextEl = document.getElementById('replyAiContext');
     const textEl = document.getElementById('replyAiText');
+    const viewPostEl = document.getElementById('replyAiViewPost');
     const regenEl = document.getElementById('replyAiRegenerate');
     const copyEl = document.getElementById('replyAiCopy');
     let currentContext = '';
 
     async function generateModalReply() {
+        regenEl.textContent = 'Regenerating...';
+        regenEl.disabled = true;
         const idea = await requestReplyIdea(currentContext);
         textEl.value = idea;
+        regenEl.textContent = 'Regenerate';
+        regenEl.disabled = false;
     }
 
     modal.querySelectorAll('[data-close="1"]').forEach(el => el.addEventListener('click', () => modal.classList.add('hidden')));
@@ -441,6 +448,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             try {
                 currentContext = this.getAttribute('data-context') || '';
+                viewPostEl.href = this.getAttribute('data-post-url') || '#';
                 contextEl.textContent = currentContext;
                 await generateModalReply();
                 modal.classList.remove('hidden');

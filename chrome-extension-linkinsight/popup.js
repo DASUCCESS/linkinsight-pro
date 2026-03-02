@@ -340,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (openProfileBtn) {
     openProfileBtn.addEventListener('click', () => {
       getSavedProfileUrl(profileUrl => {
-        const targetUrl = profileUrl || 'https://www.linkedin.com/in/';
+        const targetUrl = profileUrl || 'https://www.linkedin.com/in/me/';
         openOrUpdateTab(targetUrl);
       });
     });
@@ -349,8 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Open activity
   if (openActivityBtn) {
     openActivityBtn.addEventListener('click', () => {
-      getActiveTab(tab => {
-        const profileUrl = ensureProfileUrlSavedFromTab(tab?.url || '');
+      getSavedProfileUrl(profileUrl => {
         const base = profileUrl || 'https://www.linkedin.com/in/';
         const activityUrl = base.endsWith('/') ? base + 'recent-activity/all/' : base + '/recent-activity/all/';
         openOrUpdateTab(activityUrl);
