@@ -845,8 +845,6 @@ class LinkedinSyncController extends Controller
             'connections.*.public_identifier'      => ['nullable', 'string', 'max:191'],
             'connections.*.profile_url'            => ['nullable', 'string', 'max:2048'],
             'connections.*.full_name'              => ['nullable', 'string', 'max:191'],
-            'connections.*.headline'               => ['nullable', 'string', 'max:255'],
-            'connections.*.location'               => ['nullable', 'string', 'max:191'],
             'connections.*.industry'               => ['nullable', 'string', 'max:191'],
             'connections.*.profile_image_url'      => ['nullable', 'string', 'max:2048'],
             'connections.*.degree'                 => ['nullable', 'integer', 'min:1', 'max:3'],
@@ -896,8 +894,7 @@ class LinkedinSyncController extends Controller
                     } else {
                         $dedupe = 'hash:' . $this->sha256([
                             'n' => $c['full_name'] ?? null,
-                            'h' => $c['headline'] ?? null,
-                            'l' => $c['location'] ?? null,
+                            'u' => $profileUrl,
                         ]);
                     }
 
@@ -907,8 +904,6 @@ class LinkedinSyncController extends Controller
                         'public_identifier'        => $c['public_identifier'] ?? null,
                         'profile_url'              => $profileUrl,
                         'full_name'                => $c['full_name'] ?? null,
-                        'headline'                 => $c['headline'] ?? null,
-                        'location'                 => $c['location'] ?? null,
                         'industry'                 => $c['industry'] ?? null,
                         'profile_image_url'        => $c['profile_image_url'] ?? null,
                         'degree'                   => $c['degree'] ?? null,
@@ -925,8 +920,6 @@ class LinkedinSyncController extends Controller
                             'public_identifier'        => $c['public_identifier'] ?? null,
                             'profile_url'              => $profileUrl,
                             'full_name'                => $c['full_name'] ?? null,
-                            'headline'                 => $c['headline'] ?? null,
-                            'location'                 => $c['location'] ?? null,
                             'industry'                 => $c['industry'] ?? null,
                             'degree'                   => $c['degree'] ?? null,
                             'mutual_connections_count' => $c['mutual_connections_count'] ?? 0,

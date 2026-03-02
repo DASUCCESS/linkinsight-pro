@@ -4,13 +4,15 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\LinkedinSyncJob;
+use App\Services\AiInsightsService;
 use App\Services\LinkedinAnalyticsService;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
     public function __construct(
-        protected LinkedinAnalyticsService $analyticsService
+        protected LinkedinAnalyticsService $analyticsService,
+        protected AiInsightsService $aiInsightsService
     ) {
     }
 
@@ -19,6 +21,7 @@ class DashboardController extends Controller
         $user = $request->user();
 
         $summary = $this->analyticsService->getSummaryForUser($user, null);
+        $aiRecommendations = $this->aiInsightsService->forSummary($summary);
 
         $syncJobs = LinkedinSyncJob::query()
             ->where('user_id', $user->id)
@@ -32,6 +35,6 @@ class DashboardController extends Controller
             ->paginate(5)
             ->withQueryString();
 
-        return view('user.dashboard.index', compact('summary', 'syncJobs'));
+        return view('user.dashboard.index', compact('summary', 'syncJobs', 'aiRecommendations'));
     }
 }

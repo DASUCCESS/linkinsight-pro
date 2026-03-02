@@ -48,6 +48,21 @@
         </div>
     @else
         <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">AI recommendations & analytics insights</h3>
+                <span class="text-[11px] px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                    {{ strtoupper($aiRecommendations['source'] ?? 'local') }}
+                </span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">{{ $aiRecommendations['summary'] ?? 'No AI summary available.' }}</p>
+            <ul class="list-disc list-inside text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                @foreach(($aiRecommendations['recommendations'] ?? []) as $item)
+                    <li>{{ $item }}</li>
+                @endforeach
+            </ul>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 mb-6">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                 <div class="flex items-center gap-3">
                     @if(!empty($profile['profile_image_url']))
@@ -330,12 +345,21 @@
                                     {{ number_format($latestMetric->reposts ?? 0) }}
                                 </td>
                                 <td class="px-3 py-2 text-right">
-                                    @if($post->permalink)
-                                        <a href="{{ $post->permalink }}" target="_blank"
-                                           class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
-                                            View
-                                        </a>
-                                    @endif
+                                    <div class="inline-flex items-center gap-1">
+                                        <button type="button"
+                                                class="ai-reply-comment-btn inline-flex items-center px-2.5 py-1 rounded-full text-[11px] border border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-200 cursor-pointer hover:scale-[var(--hover-scale)] transition"
+                                                data-context="{{ e(($post->content_excerpt ?: 'LinkedIn post') . ' | type: ' . ($post->post_type ?: 'post')) }}"
+                                                data-post-url="{{ e($post->permalink) }}"
+                                                title="Reply comment idea with AI">
+                                            ✨ Reply Idea
+                                        </button>
+                                        @if($post->permalink)
+                                            <a href="{{ $post->permalink }}" target="_blank"
+                                               class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
+                                                View
+                                            </a>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -350,3 +374,92 @@
         </div>
     @endif
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const buttons = document.querySelectorAll('.ai-reply-comment-btn');
+    if (!buttons.length) return;
+
+    async function requestReplyIdea(contextText) {
+        const res = await fetch(@json(route('dashboard.ai-assistant')), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': @json(csrf_token()),
+            },
+            body: JSON.stringify({
+                action: 'reply_comment',
+                input_text: contextText || null,
+            }),
+        });
+
+        if (!res.ok) throw new Error('Request failed');
+        const json = await res.json();
+        return (json?.data?.items || [])[0] || 'No suggestion returned.';
+    }
+
+    if (!document.getElementById('replyAiModal')) {
+        const modal = document.createElement('div');
+        modal.id = 'replyAiModal';
+        modal.className = 'hidden fixed inset-0 z-50';
+        modal.innerHTML = `
+            <div class="absolute inset-0 bg-black/50" data-close="1"></div>
+            <div class="relative mx-auto mt-20 max-w-2xl bg-white dark:bg-slate-900 rounded-2xl border p-5">
+                <div class="flex justify-between items-center mb-2"><h4 class="text-sm font-semibold">AI Reply Idea</h4><button data-close="1" class="px-2 py-1 border rounded text-xs">Close</button></div>
+                <p id="replyAiContext" class="text-xs text-slate-500 mb-2"></p>
+                <textarea id="replyAiText" rows="6" class="w-full rounded-xl border px-3 py-2 text-sm"></textarea>
+                <div class="flex gap-2 mt-3 justify-end">
+                    <a id="replyAiViewPost" href="#" target="_blank" class="px-3 py-1 rounded border text-xs">View Post on LinkedIn</a>
+                    <button id="replyAiRegenerate" class="px-3 py-1 rounded border text-xs">Regenerate</button>
+                    <button id="replyAiCopy" class="px-3 py-1 rounded border text-xs">Copy</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    const modal = document.getElementById('replyAiModal');
+    const contextEl = document.getElementById('replyAiContext');
+    const textEl = document.getElementById('replyAiText');
+    const viewPostEl = document.getElementById('replyAiViewPost');
+    const regenEl = document.getElementById('replyAiRegenerate');
+    const copyEl = document.getElementById('replyAiCopy');
+    let currentContext = '';
+
+    async function generateModalReply() {
+        regenEl.textContent = 'Regenerating...';
+        regenEl.disabled = true;
+        const idea = await requestReplyIdea(currentContext);
+        textEl.value = idea;
+        regenEl.textContent = 'Regenerate';
+        regenEl.disabled = false;
+    }
+
+    modal.querySelectorAll('[data-close="1"]').forEach(el => el.addEventListener('click', () => modal.classList.add('hidden')));
+    regenEl.addEventListener('click', async () => { await generateModalReply(); });
+    copyEl.addEventListener('click', async () => { await navigator.clipboard.writeText(textEl.value || ''); });
+
+    buttons.forEach((btn) => {
+        btn.addEventListener('click', async function () {
+            const original = this.textContent;
+            this.textContent = 'Generating...';
+            this.disabled = true;
+
+            try {
+                currentContext = this.getAttribute('data-context') || '';
+                viewPostEl.href = this.getAttribute('data-post-url') || '#';
+                contextEl.textContent = currentContext;
+                await generateModalReply();
+                modal.classList.remove('hidden');
+            } catch (e) {
+                alert('Could not generate AI reply idea now. Please try again.');
+            } finally {
+                this.textContent = original;
+                this.disabled = false;
+            }
+        });
+    });
+});
+</script>
+@endpush
