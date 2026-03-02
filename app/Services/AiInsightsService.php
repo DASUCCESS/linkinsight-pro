@@ -101,7 +101,7 @@ class AiInsightsService
             'reply_comment' => 'Generate 4 smart replies to comments on the user\'s post. Keep tone helpful and professional.',
             'connection_message' => 'Draft 3 concise connection messages for networking. Make them personal, value-driven, and professional.',
             'improve_post' => 'Improve the provided post draft with a stronger hook, clearer structure, and engagement-optimized wording. Return improved draft plus 3 hook variants.',
-            'article_post' => 'Write a complete LinkedIn article post using the provided topic and context. Include: compelling title, strong opening, scannable sections with subheadings, practical examples, and a clear CTA. Keep it professional and ready to publish.',
+            'article_post' => 'Write a complete LinkedIn article post using the provided topic and context. Include: compelling title, strong opening, scannable sections with subheadings, practical examples, and a clear CTA. Keep it professional and ready to publish as one full article draft.',
         ];
 
         $instruction = $prompts[$action] ?? $prompts['weekly_insights'];
@@ -133,18 +133,23 @@ class AiInsightsService
         $model = (string) (Setting::getValue('ai', 'groq_model', 'llama-3.3-70b-versatile'));
         $temperature = (float) Setting::getValue('ai', 'temperature', 0.3);
         $maxTokens = (int) Setting::getValue('ai', 'max_tokens', 900);
+        $action = (string) ($context['action'] ?? 'weekly_insights');
+        $isArticleAction = $action === 'article_post';
+        $systemPrompt = $isArticleAction
+            ? 'You are a LinkedIn growth assistant. Return valid JSON with key "items" where items is an array containing exactly one string. That string must be a complete, blog-style LinkedIn article draft in markdown with: title, hook/introduction, section headings, practical examples, conclusion, and CTA. Do not return short tip bullets as separate items.'
+            : 'You are a LinkedIn growth assistant. Return JSON with key "items" (array of short strings). Keep each item concise, practical, and copy-ready.';
 
         try {
             $response = $this->groqHttpClient($apiKey)
                 ->post('https://api.groq.com/openai/v1/chat/completions', [
                     'model' => $model,
                     'temperature' => $temperature,
-                    'max_tokens' => $maxTokens,
+                    'max_tokens' => $isArticleAction ? max(1200, $maxTokens) : $maxTokens,
                     'response_format' => ['type' => 'json_object'],
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => 'You are a LinkedIn growth assistant. Return JSON with key "items" (array of short strings). Keep each item concise, practical, and copy-ready.',
+                            'content' => $systemPrompt,
                         ],
                         [
                             'role' => 'user',
@@ -168,7 +173,7 @@ class AiInsightsService
             return $this->fallbackAssistant($context['action'] ?? 'weekly_insights');
         }
 
-        return array_values(array_slice(array_map(fn ($v) => (string) $v, $items), 0, 8));
+        return array_values(array_slice(array_map(fn ($v) => (string) $v, $items), 0, $isArticleAction ? 1 : 8));
     }
 
     protected function buildPerformanceSnapshot(array $summary): array
@@ -255,12 +260,26 @@ class AiInsightsService
                 'Close with: “Want the checklist? Comment CHECKLIST and I\'ll send it.”',
             ],
             'article_post' => [
-                'Title: The Hidden Habit That Separates High-Trust LinkedIn Leaders',
-                'Opening: Most professionals post consistently, but few build real trust. The difference is not volume—it is clarity and usefulness.',
-                'Section 1 — Start with a practical problem your audience feels every week.',
-                'Section 2 — Share a simple framework (3–5 steps) they can apply immediately.',
-                'Section 3 — Add one short real example with measurable outcome.',
-                'CTA: Ask readers to share their biggest blocker and offer a follow-up template in comments.',
+                "# The Hidden Habit That Separates High-Trust LinkedIn Leaders
+
+Most professionals post often, but only a few build consistent trust. The difference is not volume. It is clarity, relevance, and practical value in every post.
+
+## Why Most LinkedIn Content Gets Ignored
+People scroll fast. If your first lines are generic, your audience moves on. High-performing creators open with a real problem and quickly show why it matters now.
+
+## A Simple 3-Step Framework You Can Use This Week
+1. **Start with one clear audience pain point.** Describe it in plain language.
+2. **Teach one practical method.** Keep it specific and easy to apply in under 10 minutes.
+3. **End with an action prompt.** Ask a focused question to drive comments and conversations.
+
+## Example in Practice
+Instead of posting: “Be consistent on LinkedIn.”
+Try: “I posted 3 times weekly for 4 weeks using one format: Hook → 3 tactical points → CTA. Impressions increased 32% and comments doubled.”
+
+## Final Takeaway
+Trust on LinkedIn is built when your content helps people make progress quickly. Keep your message practical, measurable, and repeatable.
+
+**CTA:** What is one part of your LinkedIn content strategy you want to improve this month?",
             ],
             default => [
                 'What is happening: engagement is concentrated in specific content formats and topics.',

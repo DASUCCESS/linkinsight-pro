@@ -72,6 +72,7 @@
                 <ul id="aiAssistantList" class="space-y-2 list-disc list-inside text-sm text-slate-700 dark:text-slate-200">
                     <li>Generate weekly insights, post ideas, or create a full LinkedIn article.</li>
                 </ul>
+                <div id="aiArticleOutput" class="hidden text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-7"></div>
             </div>
         </section>
     </div>
@@ -100,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const buttons = document.querySelectorAll('.ai-workflow-btn');
     const aiList = document.getElementById('aiAssistantList');
     const aiTitle = document.getElementById('aiAssistantTitle');
+    const aiArticleOutput = document.getElementById('aiArticleOutput');
     const aiInput = document.getElementById('aiInputText');
     const copyBtn = document.getElementById('copyAiOutputBtn');
     const regenBtn = document.getElementById('regenAiOutputBtn');
@@ -125,6 +127,31 @@ document.addEventListener('DOMContentLoaded', function () {
         button.textContent = button.dataset.originalLabel || label;
     }
 
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
+    function renderOutput(action, items) {
+        if (action === 'article_post') {
+            const article = String((items || [])[0] || '').trim();
+            aiList.classList.add('hidden');
+            aiArticleOutput.classList.remove('hidden');
+            aiArticleOutput.innerHTML = article ? escapeHtml(article) : 'No output.';
+            return;
+        }
+
+        aiArticleOutput.classList.add('hidden');
+        aiArticleOutput.textContent = '';
+        aiList.classList.remove('hidden');
+        aiList.innerHTML = items.length ? items.map(i => `<li>${escapeHtml(String(i))}</li>`).join('') : '<li>No output.</li>';
+    }
+
     function buildArticlePrompt() {
         return [
             `Topic: ${(articleTopic.value || '').trim() || 'LinkedIn growth'}`,
@@ -139,6 +166,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const resolvedInput = inputText ?? aiInput.value ?? null;
         lastRequest = { action, inputText: resolvedInput, title };
         aiTitle.textContent = title || 'Generating...';
+        aiArticleOutput.classList.add('hidden');
+        aiArticleOutput.textContent = '';
+        aiList.classList.remove('hidden');
         aiList.innerHTML = '<li>Please wait...</li>';
         if (isRegen) setButtonLoading(regenBtn, true);
 
@@ -148,9 +178,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = payload?.data || {};
             aiTitle.textContent = title || data.title || 'Output';
             const items = Array.isArray(data.items) ? data.items : [];
-            aiList.innerHTML = items.length ? items.map(i => `<li>${String(i)}</li>`).join('') : '<li>No output.</li>';
+            renderOutput(action, items);
         } catch {
             aiTitle.textContent = 'Output';
+            aiArticleOutput.classList.add('hidden');
+            aiArticleOutput.textContent = '';
+            aiList.classList.remove('hidden');
             aiList.innerHTML = '<li>Could not generate output right now. Please try again.</li>';
         } finally {
             if (isRegen) setButtonLoading(regenBtn, false);
@@ -174,7 +207,12 @@ document.addEventListener('DOMContentLoaded', function () {
         run(lastRequest.action, true, lastRequest.inputText, lastRequest.title);
     });
 
-    copyBtn.addEventListener('click', async () => await navigator.clipboard.writeText(Array.from(aiList.querySelectorAll('li')).map(li => li.textContent).join('\n')));
+    copyBtn.addEventListener('click', async () => {
+        const articleVisible = !aiArticleOutput.classList.contains('hidden');
+        const articleText = (aiArticleOutput.textContent || '').trim();
+        const listText = Array.from(aiList.querySelectorAll('li')).map(li => li.textContent).join('\n');
+        await navigator.clipboard.writeText(articleVisible ? articleText : listText);
+    });
 
     const chatLog = document.getElementById('chatLog');
     const chatInput = document.getElementById('chatInput');
