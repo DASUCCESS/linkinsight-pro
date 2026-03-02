@@ -282,6 +282,26 @@ function scrapeProfileData() {
       }
     }
 
+    if (!profile.location) {
+      const candidates = Array.from(document.querySelectorAll('main span, main div, main li'))
+        .map(el => normalizeText(safeText(el)))
+        .filter(Boolean)
+        .slice(0, 140);
+
+      const found = candidates.find(t => looksLikeLocation(t));
+      if (found) profile.location = found;
+    }
+
+    if (!profile.headline) {
+      const candidates = Array.from(document.querySelectorAll('main h2, main h3, main span, main div'))
+        .map(el => normalizeText(safeText(el)))
+        .filter(Boolean)
+        .slice(0, 160);
+
+      const found = candidates.find(t => t.length > 8 && t.length < 140 && !looksLikeLocation(t) && !/follower|connection/i.test(t));
+      if (found) profile.headline = found;
+    }
+
     // INDUSTRY
     const industryEl =
       document.querySelector('li[data-test-id="profile-industry"] span') ||
