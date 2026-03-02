@@ -101,6 +101,7 @@ class AiInsightsService
             'reply_comment' => 'Generate 4 smart replies to comments on the user\'s post. Keep tone helpful and professional.',
             'connection_message' => 'Draft 3 concise connection messages for networking. Make them personal, value-driven, and professional.',
             'improve_post' => 'Improve the provided post draft with a stronger hook, clearer structure, and engagement-optimized wording. Return improved draft plus 3 hook variants.',
+            'article_post' => 'Write a complete LinkedIn article post using the provided topic and context. Include: compelling title, strong opening, scannable sections with subheadings, practical examples, and a clear CTA. Keep it professional and ready to publish.',
         ];
 
         $instruction = $prompts[$action] ?? $prompts['weekly_insights'];
@@ -220,6 +221,7 @@ class AiInsightsService
             'reply_comment' => 'Comment Replies',
             'connection_message' => 'Connection Messages',
             'improve_post' => 'Improved Post Draft',
+            'article_post' => 'LinkedIn Article Draft',
             default => 'AI Assistant Output',
         };
     }
@@ -251,6 +253,14 @@ class AiInsightsService
                 'Hook: Most LinkedIn posts fail before the second line—here\'s how to fix that.',
                 'Structure: Problem → 3 practical points → clear CTA asking a specific question.',
                 'Close with: “Want the checklist? Comment CHECKLIST and I\'ll send it.”',
+            ],
+            'article_post' => [
+                'Title: The Hidden Habit That Separates High-Trust LinkedIn Leaders',
+                'Opening: Most professionals post consistently, but few build real trust. The difference is not volume—it is clarity and usefulness.',
+                'Section 1 — Start with a practical problem your audience feels every week.',
+                'Section 2 — Share a simple framework (3–5 steps) they can apply immediately.',
+                'Section 3 — Add one short real example with measurable outcome.',
+                'CTA: Ask readers to share their biggest blocker and offer a follow-up template in comments.',
             ],
             default => [
                 'What is happening: engagement is concentrated in specific content formats and topics.',

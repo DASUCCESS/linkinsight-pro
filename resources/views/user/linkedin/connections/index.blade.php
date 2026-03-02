@@ -102,6 +102,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const buttons = document.querySelectorAll('.ai-compose-msg-btn');
     if (!buttons.length) return;
 
+    const spinnerMarkup = '<svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><circle class="opacity-30" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle><path class="opacity-90" d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path></svg>';
+
+    function setButtonLoading(button, loading, loadingLabel = 'Regenerating...') {
+        if (!button) return;
+        if (loading) {
+            button.disabled = true;
+            button.dataset.originalLabel = button.dataset.originalLabel || button.textContent.trim();
+            button.innerHTML = `${spinnerMarkup}<span>${loadingLabel}</span>`;
+            return;
+        }
+
+        button.disabled = false;
+        button.textContent = button.dataset.originalLabel || 'Regenerate';
+    }
+
     async function generateIntro(context) {
         const res = await fetch(@json(route('dashboard.ai-assistant')), {
             method: 'POST',
@@ -145,13 +160,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const copyEl = document.getElementById('connAiCopy');
     let currentContext = '';
 
-    async function generateAndShow() {
-        const message = await generateIntro(currentContext);
-        txtEl.value = message;
+    async function generateAndShow(isRegen = false) {
+        if (isRegen) setButtonLoading(regenEl, true);
+
+        try {
+            const message = await generateIntro(currentContext);
+            txtEl.value = message;
+        } finally {
+            if (isRegen) setButtonLoading(regenEl, false);
+        }
     }
 
     modal.querySelectorAll('[data-close="1"]').forEach(el => el.addEventListener('click', () => modal.classList.add('hidden')));
-    regenEl.addEventListener('click', async () => { await generateAndShow(); });
+    regenEl.addEventListener('click', async () => { await generateAndShow(true); });
     copyEl.addEventListener('click', async () => { await navigator.clipboard.writeText(txtEl.value || ''); });
 
     buttons.forEach((btn) => {
