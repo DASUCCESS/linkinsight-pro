@@ -10,11 +10,17 @@ use App\Models\LinkedinProfile;
 use App\Models\LinkedinProfileMetric;
 use App\Models\LinkedinAudienceDemographic;
 use App\Models\LinkedinCreatorAudienceMetric;
+use App\Services\AiInsightsService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class LinkedinInsightsController extends Controller
 {
+    public function __construct(
+        protected AiInsightsService $aiInsightsService
+    ) {
+    }
+
     public function audienceInsights(Request $request)
     {
         $user = $request->user();
@@ -104,6 +110,19 @@ class LinkedinInsightsController extends Controller
 
         $typeCounts = $posts->groupBy('post_type')->map(fn($i) => $i->count())->sortDesc();
 
+        $payload = [
+            'profile' => ['id' => $profile->id, 'name' => $profile->name],
+            'summary_30d' => [
+                'impressions' => $totalImpressions,
+                'engagements' => $totalEngagements,
+                'avg_engagement_rate' => $avgEngRate,
+            ],
+            'best_hours' => $bestHours,
+            'content_mix' => $typeCounts,
+        ];
+
+        $ai = $this->aiInsightsService->forRecommendationsPayload($payload);
+
         return response()->json([
             'status' => 'ok',
             'profile' => ['id' => $profile->id, 'name' => $profile->name],
@@ -135,6 +154,7 @@ class LinkedinInsightsController extends Controller
                     ],
                 ],
             ],
+            'ai' => $ai,
         ]);
     }
 
@@ -209,8 +229,6 @@ class LinkedinInsightsController extends Controller
         if ($q) {
             $query->where(function ($w) use ($q) {
                 $w->where('full_name', 'like', "%{$q}%")
-                    ->orWhere('headline', 'like', "%{$q}%")
-                    ->orWhere('location', 'like', "%{$q}%")
                     ->orWhere('industry', 'like', "%{$q}%")
                     ->orWhere('profile_url', 'like', "%{$q}%")
                     ->orWhere('public_identifier', 'like', "%{$q}%");
