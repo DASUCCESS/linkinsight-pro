@@ -18,11 +18,9 @@
                     <a href="https://www.linkedin.com/feed/" target="_blank" class="inline-flex items-center gap-1 px-4 py-2 rounded-full text-xs font-semibold bg-white/15 border border-white/30 hover:bg-white/25 transition">Open LinkedIn</a>
                 </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <div class="grid grid-cols-2 gap-2 text-xs">
                     <button type="button" class="ai-workflow-btn px-3 py-2 rounded-full border border-white/25 bg-white/10 hover:bg-white/20 transition font-semibold" data-action="weekly_insights">Weekly Insights</button>
                     <button type="button" class="ai-workflow-btn px-3 py-2 rounded-full border border-white/25 bg-white/10 hover:bg-white/20 transition font-semibold" data-action="post_ideas">Post Ideas</button>
-                    <button type="button" class="ai-workflow-btn px-3 py-2 rounded-full border border-white/25 bg-white/10 hover:bg-white/20 transition font-semibold" data-action="improve_post">Improve Post</button>
-                    <button type="button" class="ai-workflow-btn px-3 py-2 rounded-full border border-white/25 bg-white/10 hover:bg-white/20 transition font-semibold" data-action="article_post">Generate Article</button>
                 </div>
             </div>
         </section>
@@ -32,7 +30,36 @@
                 <h4 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Prompt / Context</h4>
                 <span class="text-[11px] text-slate-400">Add topic, audience, and goals</span>
             </div>
-            <textarea id="aiInputText" rows="6" class="w-full rounded-2xl border-slate-300 dark:border-slate-700 bg-white/90 dark:bg-slate-900 px-4 py-3 text-sm" placeholder="Example: Write an article for startup founders on how to build trust on LinkedIn using weekly content examples and clear CTAs."></textarea>
+            <textarea id="aiInputText" rows="4" class="w-full rounded-2xl border-slate-300 dark:border-slate-700 bg-white/90 dark:bg-slate-900 px-4 py-3 text-sm" placeholder="Example: Generate a weekly insight summary for my content performance."></textarea>
+        </section>
+
+        <section class="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-6">
+            <div class="flex items-center justify-between gap-2 mb-4">
+                <h4 class="text-sm font-semibold text-slate-800 dark:text-slate-100">LinkedIn Article / Blog Post Generator</h4>
+                <span class="text-[11px] text-slate-400">Tell AI what to write</span>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-3 mb-3">
+                <input id="articleTopic" type="text" class="w-full rounded-xl border-slate-300 dark:border-slate-700 px-3 py-2 text-sm" placeholder="Article topic (e.g., Productivity for remote teams)">
+                <input id="articleAudience" type="text" class="w-full rounded-xl border-slate-300 dark:border-slate-700 px-3 py-2 text-sm" placeholder="Audience (e.g., Startup founders, marketers)">
+            </div>
+            <div class="grid md:grid-cols-2 gap-3 mb-3">
+                <input id="articleGoal" type="text" class="w-full rounded-xl border-slate-300 dark:border-slate-700 px-3 py-2 text-sm" placeholder="Goal (e.g., educate, generate leads)">
+                <select id="articleTone" class="w-full rounded-xl border-slate-300 dark:border-slate-700 px-3 py-2 text-sm">
+                    <option value="Professional">Tone: Professional</option>
+                    <option value="Thought leadership">Tone: Thought leadership</option>
+                    <option value="Conversational">Tone: Conversational</option>
+                    <option value="Data-driven">Tone: Data-driven</option>
+                </select>
+            </div>
+            <textarea id="articleNotes" rows="4" class="w-full rounded-xl border-slate-300 dark:border-slate-700 px-3 py-2 text-sm" placeholder="Extra instructions (key points, story, CTA, examples, word count)..."></textarea>
+
+            <div class="mt-3 flex flex-wrap gap-2">
+                <button type="button" id="suggestArticleIdeasBtn" class="px-3 py-2 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-600">Suggest Article Ideas</button>
+                <button type="button" id="generateArticlePostBtn" class="px-3 py-2 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-600">Generate LinkedIn Article Post</button>
+            </div>
+
+            <p class="text-[11px] text-slate-500 mt-2">Use “Suggest Article Ideas” first if you need inspiration, then generate a full article you can post on LinkedIn.</p>
 
             <div class="mt-5 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 bg-slate-50/80 dark:bg-slate-900/50">
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -43,7 +70,7 @@
                     </div>
                 </div>
                 <ul id="aiAssistantList" class="space-y-2 list-disc list-inside text-sm text-slate-700 dark:text-slate-200">
-                    <li>Select an action to generate output.</li>
+                    <li>Generate weekly insights, post ideas, or create a full LinkedIn article.</li>
                 </ul>
             </div>
         </section>
@@ -76,7 +103,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const aiInput = document.getElementById('aiInputText');
     const copyBtn = document.getElementById('copyAiOutputBtn');
     const regenBtn = document.getElementById('regenAiOutputBtn');
-    let lastAction = null;
+    const suggestArticleIdeasBtn = document.getElementById('suggestArticleIdeasBtn');
+    const generateArticlePostBtn = document.getElementById('generateArticlePostBtn');
+    const articleTopic = document.getElementById('articleTopic');
+    const articleAudience = document.getElementById('articleAudience');
+    const articleGoal = document.getElementById('articleGoal');
+    const articleTone = document.getElementById('articleTone');
+    const articleNotes = document.getElementById('articleNotes');
+    let lastRequest = null;
 
     function setButtonLoading(button, loading, label = 'Regenerate') {
         if (!button) return;
@@ -91,17 +125,28 @@ document.addEventListener('DOMContentLoaded', function () {
         button.textContent = button.dataset.originalLabel || label;
     }
 
-    async function run(action, isRegen = false) {
-        lastAction = action;
-        aiTitle.textContent = 'Generating...';
+    function buildArticlePrompt() {
+        return [
+            `Topic: ${(articleTopic.value || '').trim() || 'LinkedIn growth'}`,
+            `Audience: ${(articleAudience.value || '').trim() || 'Professionals on LinkedIn'}`,
+            `Goal: ${(articleGoal.value || '').trim() || 'Educate and drive engagement'}`,
+            `Tone: ${(articleTone.value || '').trim() || 'Professional'}`,
+            `Additional instructions: ${(articleNotes.value || '').trim() || 'Use clear subheadings, practical examples, and a strong CTA.'}`,
+        ].join('\n');
+    }
+
+    async function run(action, isRegen = false, inputText = null, title = null) {
+        const resolvedInput = inputText ?? aiInput.value ?? null;
+        lastRequest = { action, inputText: resolvedInput, title };
+        aiTitle.textContent = title || 'Generating...';
         aiList.innerHTML = '<li>Please wait...</li>';
         if (isRegen) setButtonLoading(regenBtn, true);
 
         try {
-            const res = await fetch(@json(route('dashboard.ai-assistant')), {method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':@json(csrf_token()),'X-Requested-With':'XMLHttpRequest'},body:JSON.stringify({action,input_text:aiInput.value||null})});
+            const res = await fetch(@json(route('dashboard.ai-assistant')), {method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':@json(csrf_token()),'X-Requested-With':'XMLHttpRequest'},body:JSON.stringify({action,input_text:resolvedInput})});
             const payload = await res.json();
             const data = payload?.data || {};
-            aiTitle.textContent = data.title || 'Output';
+            aiTitle.textContent = title || data.title || 'Output';
             const items = Array.isArray(data.items) ? data.items : [];
             aiList.innerHTML = items.length ? items.map(i => `<li>${String(i)}</li>`).join('') : '<li>No output.</li>';
         } catch {
@@ -113,7 +158,22 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     buttons.forEach(b => b.addEventListener('click', () => run(b.dataset.action)));
-    regenBtn.addEventListener('click', () => { if (lastAction) run(lastAction, true); });
+
+    suggestArticleIdeasBtn.addEventListener('click', () => {
+        const articlePrompt = buildArticlePrompt() + '\nTask: Suggest 6 strong LinkedIn article/blog ideas with clear angles.';
+        run('post_ideas', false, articlePrompt, 'Suggested Article Ideas');
+    });
+
+    generateArticlePostBtn.addEventListener('click', () => {
+        const articlePrompt = buildArticlePrompt() + '\nTask: Write a complete blog-style LinkedIn article ready to post.';
+        run('article_post', false, articlePrompt, 'LinkedIn Article Draft');
+    });
+
+    regenBtn.addEventListener('click', () => {
+        if (!lastRequest) return;
+        run(lastRequest.action, true, lastRequest.inputText, lastRequest.title);
+    });
+
     copyBtn.addEventListener('click', async () => await navigator.clipboard.writeText(Array.from(aiList.querySelectorAll('li')).map(li => li.textContent).join('\n')));
 
     const chatLog = document.getElementById('chatLog');
