@@ -108,7 +108,6 @@ function normalizeText(s) {
   return (s || '').replace(/\s+/g, ' ').trim();
 }
 
-
 function getMetaContent(selector) {
   const el = document.querySelector(selector);
   if (!el) return '';
@@ -280,26 +279,6 @@ function scrapeProfileData() {
           }
         }
       }
-    }
-
-    if (!profile.location) {
-      const candidates = Array.from(document.querySelectorAll('main span, main div, main li'))
-        .map(el => normalizeText(safeText(el)))
-        .filter(Boolean)
-        .slice(0, 140);
-
-      const found = candidates.find(t => looksLikeLocation(t));
-      if (found) profile.location = found;
-    }
-
-    if (!profile.headline) {
-      const candidates = Array.from(document.querySelectorAll('main h2, main h3, main span, main div'))
-        .map(el => normalizeText(safeText(el)))
-        .filter(Boolean)
-        .slice(0, 160);
-
-      const found = candidates.find(t => t.length > 8 && t.length < 140 && !looksLikeLocation(t) && !/follower|connection/i.test(t));
-      if (found) profile.headline = found;
     }
 
     // INDUSTRY
@@ -864,41 +843,17 @@ function extractPublicIdentifierFromProfileUrl(url) {
   return m ? m[1] : null;
 }
 
-function findNextConnectionsPageButton() {
-  const items = Array.from(document.querySelectorAll('button, a[role="button"]'));
-  return items.find((el) => {
-    const txt = normalizeText(safeText(el)).toLowerCase();
-    const aria = (el.getAttribute('aria-label') || '').toLowerCase();
-    const isNext = txt === 'next' || txt.includes('next page') || aria.includes('next');
-    const disabled = el.disabled || el.getAttribute('aria-disabled') === 'true';
-    return isNext && !disabled;
-  }) || null;
-}
+async function scrapeConnectionsDirectory() {
+  await autoScroll(12, 900);
 
-async function scrapeConnectionsDirectory(options = {}) {
-  const autoPaginate = !!options.autoPaginate;
-  const autoScrollEnabled = options.autoScrollEnabled !== false;
-  const maxPages = Number(options.maxPages || 1);
-
-  const allConnections = [];
-  const seenGlobal = new Set();
-  let page = 0;
-
-  while (page < Math.max(1, maxPages)) {
-    page += 1;
-
-    if (autoScrollEnabled) {
-      await autoScroll(4, 900);
-    }
-
-    const profileLinks = Array.from(document.querySelectorAll('a[href*="linkedin.com/in/"]'))
-      .map(a => a.href)
-      .filter(Boolean);
+  const profileLinks = Array.from(document.querySelectorAll('a[href*="linkedin.com/in/"]'))
+    .map(a => a.href)
+    .filter(Boolean);
 
   const uniqueLinks = Array.from(new Set(profileLinks.map(cleanUrl))).slice(0, 1200);
 
-    const connections = [];
-    const seen = new Set();
+  const connections = [];
+  const seen = new Set();
 
   uniqueLinks.forEach(url => {
     if (seen.has(url)) return;
@@ -908,7 +863,8 @@ async function scrapeConnectionsDirectory(options = {}) {
     const card = a ? (a.closest('li') || a.closest('div')) : null;
 
     let fullName = null;
-    let industry = null;
+    let headline = null;
+    let location = null;
     let img = null;
 
     if (card) {
@@ -918,7 +874,16 @@ async function scrapeConnectionsDirectory(options = {}) {
         .filter(Boolean);
 
       if (txt.length) fullName = txt[0];
-      industry = txt.find((t, idx) => idx > 0 && t.length > 2 && t.length < 90 && !/\d/.test(t) && !/connections?|followers?/i.test(t)) || null;
+      if (txt.length > 1) headline = txt[1];
+
+      if (txt.length > 2) {
+        location = txt[2];
+      }
+
+      if (!location) {
+        location = txt.find((t, idx) => idx > 0 && /,\s*\S+/.test(t)) || null;
+      }
+
       const imgEl = card.querySelector('img');
       if (imgEl) img = imgEl.src || imgEl.getAttribute('src') || null;
     }
@@ -930,7 +895,9 @@ async function scrapeConnectionsDirectory(options = {}) {
       public_identifier: publicId,
       profile_url: url,
       full_name: fullName,
-      industry: industry,
+      headline: headline,
+      location: location,
+      industry: null,
       profile_image_url: img,
       degree: null,
       mutual_connections_count: null,
@@ -939,21 +906,7 @@ async function scrapeConnectionsDirectory(options = {}) {
     });
   });
 
-    for (const row of connections) {
-      if (!row.profile_url || seenGlobal.has(row.profile_url)) continue;
-      seenGlobal.add(row.profile_url);
-      allConnections.push(row);
-    }
-
-    if (!autoPaginate) break;
-
-    const nextBtn = findNextConnectionsPageButton();
-    if (!nextBtn) break;
-    nextBtn.click();
-    await new Promise((r) => setTimeout(r, 1800));
-  }
-
-  return allConnections;
+  return connections;
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -1100,7 +1053,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     (async () => {
       try {
-        const connections = await scrapeConnectionsDirectory(msg.options || {});
+        const connections = await scrapeConnectionsDirectory();
         if (!connections.length) {
           sendResponse({ success: false, error: 'NO_DATA' });
           return;
