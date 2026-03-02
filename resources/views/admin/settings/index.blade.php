@@ -38,12 +38,19 @@
                         <span>SMTP</span>
                         <span class="h-6 w-6 rounded-xl flex items-center justify-center bg-slate-100 text-[10px] text-slate-500">04</span>
                     </a>
+                    <a href="#ai"
+                    class="flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer
+                            bg-slate-50 border border-slate-200 text-slate-700
+                            transition transform duration-150 hover:bg-sky-50 hover:border-sky-200 hover:shadow-md hover:scale-[var(--hover-scale)]">
+                        <span>AI (Groq)</span>
+                        <span class="h-6 w-6 rounded-xl flex items-center justify-center bg-slate-100 text-[10px] text-slate-500">05</span>
+                    </a>
                     <a href="#auth"
                     class="flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer
                             bg-slate-50 border border-slate-200 text-slate-700
                             transition transform duration-150 hover:bg-sky-50 hover:border-sky-200 hover:shadow-md hover:scale-[var(--hover-scale)]">
                         <span>Auth</span>
-                        <span class="h-6 w-6 rounded-xl flex items-center justify-center bg-slate-100 text-[10px] text-slate-500">05</span>
+                        <span class="h-6 w-6 rounded-xl flex items-center justify-center bg-slate-100 text-[10px] text-slate-500">06</span>
                     </a>
                 </div>
             </div>
@@ -464,6 +471,75 @@
                                        bg-gradient-to-r from-indigo-500 to-sky-500 text-white
                                        transition transform duration-150 hover:scale-[var(--hover-scale)]">
                             Save SEO
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            {{-- AI (Groq) --}}
+            <section id="ai" class="bg-white border border-slate-200 rounded-2xl shadow-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-semibold text-slate-800">AI Settings (Groq)</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Configure Groq API credentials used for dashboard and analytics recommendations.</p>
+                    </div>
+                    @if(session('status_ai'))
+                        <span class="text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 font-medium">
+                            {{ session('status_ai') }}
+                        </span>
+                    @endif
+                </div>
+
+                <form method="POST" action="{{ route('admin.settings.ai.update') }}" class="space-y-4 text-sm">
+                    @csrf
+
+                    <div class="flex items-center gap-2">
+                        <input type="hidden" name="enabled" value="0">
+                        <input type="checkbox" name="enabled" value="1"
+                               @checked(old('enabled', $ai['enabled']) ? true : false)
+                               class="rounded border-slate-300 bg-white text-sky-500 focus:ring-sky-500 cursor-pointer">
+                        <span class="text-slate-700 font-medium">Enable AI recommendations</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Provider</label>
+                            <input type="text" name="provider" value="{{ old('provider', $ai['provider']) }}" readonly
+                                   class="w-full rounded-xl bg-slate-100 border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Groq model</label>
+                            <input type="text" name="groq_model" value="{{ old('groq_model', $ai['groq_model']) }}"
+                                   class="w-full rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Groq API key</label>
+                        <input type="password" name="groq_api_key" value="{{ old('groq_api_key', $ai['groq_api_key']) }}"
+                               class="w-full rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                               placeholder="gsk_...">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Temperature (0 - 2)</label>
+                            <input type="number" step="0.1" min="0" max="2" name="temperature" value="{{ old('temperature', $ai['temperature']) }}"
+                                   class="w-full rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Max tokens</label>
+                            <input type="number" min="128" max="4096" name="max_tokens" value="{{ old('max_tokens', $ai['max_tokens']) }}"
+                                   class="w-full rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-2">
+                        <button type="submit"
+                                class="px-4 py-2 rounded-full text-sm font-semibold shadow-xl cursor-pointer
+                                    bg-gradient-to-r from-indigo-500 to-sky-500 text-white
+                                    transition transform duration-150 hover:scale-[var(--hover-scale)]">
+                            Save AI Settings
                         </button>
                     </div>
                 </form>
