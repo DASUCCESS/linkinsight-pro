@@ -4,13 +4,15 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\LinkedinPost;
+use App\Services\AiInsightsService;
 use App\Services\LinkedinAnalyticsService;
 use Illuminate\Http\Request;
 
 class AnalyticsController extends Controller
 {
     public function __construct(
-        protected LinkedinAnalyticsService $analyticsService
+        protected LinkedinAnalyticsService $analyticsService,
+        protected AiInsightsService $aiInsightsService
     ) {
     }
 
@@ -24,6 +26,7 @@ class AnalyticsController extends Controller
         $type      = $request->query('type');
 
         $summary = $this->analyticsService->getSummaryForUser($user, $profileId ? (int) $profileId : null, $from, $to);
+        $aiRecommendations = $this->aiInsightsService->forSummary($summary);
 
         $postsPaginated = null;
 
@@ -53,6 +56,6 @@ class AnalyticsController extends Controller
             }
         }
 
-        return view('user.analytics.index', compact('summary', 'postsPaginated'));
+        return view('user.analytics.index', compact('summary', 'postsPaginated', 'aiRecommendations'));
     }
 }
