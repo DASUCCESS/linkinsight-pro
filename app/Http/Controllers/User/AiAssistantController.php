@@ -57,18 +57,30 @@ class AiAssistantController extends Controller
     public function chat(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'mode' => ['required', Rule::in(['linkedin_activity', 'brainstorm'])],
+            'mode' => ['required', Rule::in(['linkedin_activity', 'brainstorm', 'improve_post', 'connection_message'])],
             'message' => 'required|string|max:5000',
         ]);
 
         $summary = $this->analyticsService->getSummaryForUser($request->user(), null);
 
-        $action = $validated['mode'] === 'linkedin_activity' ? 'weekly_insights' : 'post_ideas';
+        $action = match ($validated['mode']) {
+            'linkedin_activity' => 'weekly_insights',
+            'improve_post' => 'improve_post',
+            'connection_message' => 'connection_message',
+            default => 'post_ideas',
+        };
+
+        $promptPrefix = match ($validated['mode']) {
+            'linkedin_activity' => 'Use the LinkedIn analytics snapshot to answer this user request with concrete, actionable next steps: ',
+            'improve_post' => 'Improve this LinkedIn draft and explain why the changes will increase engagement: ',
+            'connection_message' => 'Create concise, personalized LinkedIn networking message options for this context: ',
+            default => 'Brainstorm creative LinkedIn content angles and concrete hooks for this request: ',
+        };
 
         $payload = $this->aiInsightsService->runAssistantAction(
             $action,
             $summary,
-            ['input_text' => $validated['message']]
+            ['input_text' => $promptPrefix . $validated['message']]
         );
 
         return response()->json([

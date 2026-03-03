@@ -139,24 +139,26 @@ class AiInsightsService
             ? 'You are a LinkedIn growth assistant. Return valid JSON with key "items" where items is an array containing exactly one string. That string must be a complete, blog-style LinkedIn article draft in markdown with: title, hook/introduction, section headings, practical examples, conclusion, and CTA. Do not return short tip bullets as separate items.'
             : 'You are a LinkedIn growth assistant. Return JSON with key "items" (array of short strings). Keep each item concise, practical, and copy-ready.';
 
+        $payload = [
+            'model' => $model,
+            'temperature' => $temperature,
+            'max_tokens' => $isArticleAction ? max(1200, $maxTokens) : max(700, $maxTokens),
+            'response_format' => ['type' => 'json_object'],
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => $systemPrompt,
+                ],
+                [
+                    'role' => 'user',
+                    'content' => json_encode($context),
+                ],
+            ],
+        ];
+
         try {
             $response = $this->groqHttpClient($apiKey)
-                ->post('https://api.groq.com/openai/v1/chat/completions', [
-                    'model' => $model,
-                    'temperature' => $temperature,
-                    'max_tokens' => $isArticleAction ? max(1200, $maxTokens) : $maxTokens,
-                    'response_format' => ['type' => 'json_object'],
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => $systemPrompt,
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => json_encode($context),
-                        ],
-                    ],
-                ]);
+                ->post('https://api.groq.com/openai/v1/chat/completions', $payload);
         } catch (ConnectionException|RequestException|\Throwable $e) {
             return $this->fallbackAssistant($context['action'] ?? 'weekly_insights');
         }
@@ -165,15 +167,49 @@ class AiInsightsService
             return $this->fallbackAssistant($context['action'] ?? 'weekly_insights');
         }
 
-        $content = data_get($response->json(), 'choices.0.message.content');
-        $decoded = is_string($content) ? json_decode($content, true) : null;
-        $items = is_array($decoded) ? (array) ($decoded['items'] ?? []) : [];
+        $content = (string) data_get($response->json(), 'choices.0.message.content', '');
+        $items = $this->decodeAssistantItems($content);
+
+        if (empty($items) && data_get($response->json(), 'choices.0.finish_reason') === 'length') {
+            try {
+                $retryPayload = $payload;
+                $retryPayload['max_tokens'] = (int) $payload['max_tokens'] + 600;
+                $retryPayload['messages'][] = [
+                    'role' => 'system',
+                    'content' => 'Your previous output appears truncated. Return complete, valid JSON now.',
+                ];
+
+                $retryResponse = $this->groqHttpClient($apiKey)
+                    ->post('https://api.groq.com/openai/v1/chat/completions', $retryPayload);
+
+                if ($retryResponse->successful()) {
+                    $items = $this->decodeAssistantItems((string) data_get($retryResponse->json(), 'choices.0.message.content', ''));
+                }
+            } catch (ConnectionException|RequestException|\Throwable $e) {
+                $items = [];
+            }
+        }
 
         if (empty($items)) {
             return $this->fallbackAssistant($context['action'] ?? 'weekly_insights');
         }
 
         return array_values(array_slice(array_map(fn ($v) => (string) $v, $items), 0, $isArticleAction ? 1 : 8));
+    }
+
+    protected function decodeAssistantItems(string $content): array
+    {
+        $decoded = json_decode($content, true);
+        if (is_array($decoded) && ! empty($decoded['items']) && is_array($decoded['items'])) {
+            return $decoded['items'];
+        }
+
+        $clean = trim($content);
+        if ($clean === '') {
+            return [];
+        }
+
+        return [$clean];
     }
 
     protected function buildPerformanceSnapshot(array $summary): array
