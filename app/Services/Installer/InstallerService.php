@@ -40,11 +40,14 @@ class InstallerService
 
     public function createAdminAccount(array $data): User
     {
-        return User::firstOrCreate(
+        return User::updateOrCreate(
             ['email' => $data['email']],
             [
                 'name'     => $data['name'],
                 'password' => Hash::make($data['password']),
+                'role'     => User::ROLE_ADMIN,
+                'is_admin' => true,
+                'status'   => 'active',
             ]
         );
     }

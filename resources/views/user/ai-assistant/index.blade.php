@@ -77,26 +77,29 @@
         </section>
     </div>
 
-    <aside class="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-6">
-        <h3 class="text-base font-semibold">AI Chat</h3>
-        <p class="text-xs text-slate-500 mt-1 mb-3">Use this chat for LinkedIn planning: content strategy, post rewrites, networking messages, and brainstorming new angles from your latest synced analytics.</p>
-        <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
-            <button type="button" data-chat-mode="linkedin_activity" class="chat-mode-btn px-3 py-1 rounded-full border font-semibold">LinkedIn Activity</button>
-            <button type="button" data-chat-mode="brainstorm" class="chat-mode-btn px-3 py-1 rounded-full border">Brainstorm</button>
-            <button type="button" data-chat-mode="improve_post" class="chat-mode-btn px-3 py-1 rounded-full border col-span-1">Improve Post</button>
-            <button type="button" data-chat-mode="connection_message" class="chat-mode-btn px-3 py-1 rounded-full border col-span-1">Networking DM</button>
+    <aside class="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-0 overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60">
+            <h3 class="text-sm font-semibold">AI Chat Assistant</h3>
+            <p class="text-xs text-slate-500 mt-1">Use this for LinkedIn strategy from your synced data: weekly actions, post ideas, and networking DMs.</p>
+            <div class="grid grid-cols-3 gap-2 mt-3 text-xs">
+                <button type="button" data-chat-mode="linkedin_activity" class="chat-mode-btn px-2.5 py-1.5 rounded-full border font-semibold">LinkedIn Data</button>
+                <button type="button" data-chat-mode="brainstorm" class="chat-mode-btn px-2.5 py-1.5 rounded-full border">Brainstorm</button>
+                <button type="button" data-chat-mode="connection_message" class="chat-mode-btn px-2.5 py-1.5 rounded-full border">Networking DM</button>
+            </div>
+            <div class="mt-3">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Suggested prompts</p>
+                <div id="chatQuickPrompts" class="flex flex-wrap gap-2"></div>
+            </div>
         </div>
-        <div class="mb-3">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Quick prompts</p>
-            <div id="chatQuickPrompts" class="flex flex-wrap gap-2"></div>
-        </div>
-        <div id="chatLog" class="h-80 overflow-auto rounded-2xl border p-3 text-xs space-y-2 bg-slate-50 dark:bg-slate-900/40">
-            <div class="text-slate-500">Start by asking for next best actions based on your metrics, or ask for draft content you can post today.</div>
-        </div>
-        <textarea id="chatInput" rows="3" class="w-full mt-3 rounded-2xl border px-3 py-2 text-sm" placeholder="Ask a LinkedIn-focused question..."></textarea>
-        <div class="flex justify-between items-center mt-2">
-            <p class="text-[11px] text-slate-500">Tip: Press Enter to send, Shift+Enter for a new line.</p>
-            <button type="button" id="chatSendBtn" class="px-4 py-1.5 rounded-full text-xs font-semibold border">Send</button>
+
+        <div id="chatLog" class="h-80 overflow-auto p-4 space-y-3 bg-white dark:bg-slate-900/40"></div>
+
+        <div class="px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60">
+            <textarea id="chatInput" rows="3" class="w-full rounded-2xl border-slate-300 dark:border-slate-700 px-3 py-2 text-sm" placeholder="Ask a LinkedIn-focused question..."></textarea>
+            <div class="flex justify-between items-center mt-2">
+                <p class="text-[11px] text-slate-500">Enter to send • Shift+Enter for a new line</p>
+                <button type="button" id="chatSendBtn" class="px-4 py-1.5 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-600">Send</button>
+            </div>
         </div>
     </aside>
 </div>
@@ -232,39 +235,65 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const promptsByMode = {
         linkedin_activity: [
-            'Based on my current metrics, what should I post this week?',
-            'What are my biggest growth risks this week and how should I fix them?',
-            'Turn my latest analytics into a 5-day content plan.'
+            'Based on my latest metrics, what should I post this week?',
+            'What are my top growth risks and how do I fix them?',
+            'Turn my analytics into a 5-day content plan.'
         ],
         brainstorm: [
-            'Give me 8 contrarian post hooks for my niche.',
             'Brainstorm 5 carousel ideas with strong first slides.',
-            'Suggest story-based posts tied to professional lessons.'
-        ],
-        improve_post: [
-            'Improve this post for stronger hook and more comments\n[Paste draft]',
-            'Rewrite this post with clearer CTA and less fluff\n[Paste draft]',
-            'Give me 3 better opening lines for this draft\n[Paste draft]'
+            'Give me 10 high-performing hooks for my niche.',
+            'Suggest 7 thought-leadership post angles for this month.'
         ],
         connection_message: [
-            'Write 3 custom connection requests for a VP of Marketing in SaaS.',
-            'Create a short follow-up DM after someone accepted my invite.',
-            'Write a networking message for someone who posted about AI strategy.'
+            'Write 3 custom LinkedIn connection requests for a SaaS VP Marketing.',
+            'Create a follow-up DM after an accepted invite.',
+            'Write a short networking message after reading someone's post.'
         ]
     };
 
-    function setChatMode(mode) {
-        chatMode = mode;
-        chatModeButtons.forEach(button => {
-            const active = button.dataset.chatMode === mode;
-            button.classList.toggle('font-semibold', active);
-        });
-        renderQuickPrompts();
+    const modeLabels = {
+        linkedin_activity: 'LinkedIn Data',
+        brainstorm: 'Brainstorm',
+        connection_message: 'Networking DM'
+    };
+
+    function addMessageBubble(role, bodyHtml) {
+        const row = document.createElement('div');
+        row.className = role === 'user' ? 'flex justify-end' : 'flex justify-start';
+
+        const bubble = document.createElement('div');
+        bubble.className = role === 'user'
+            ? 'max-w-[85%] rounded-2xl rounded-br-md bg-indigo-600 text-white px-3 py-2 text-sm shadow-sm whitespace-pre-wrap'
+            : 'max-w-[92%] rounded-2xl rounded-bl-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 text-sm shadow-sm whitespace-pre-wrap';
+        bubble.innerHTML = bodyHtml;
+
+        row.appendChild(bubble);
+        chatLog.appendChild(row);
+        chatLog.scrollTop = chatLog.scrollHeight;
+
+        return bubble;
+    }
+
+    function escapeAndBreak(text) {
+        return escapeHtml(String(text || '')).replaceAll('\n', '<br>');
+    }
+
+    function renderAiResponse(reply, items) {
+        const normalizedItems = Array.isArray(items)
+            ? items.map(item => String(item || '').trim()).filter(Boolean)
+            : [];
+
+        if (normalizedItems.length > 1) {
+            return `<div class="font-semibold mb-1">AI</div><ul class="list-disc list-inside space-y-1">${normalizedItems.map(item => `<li>${escapeAndBreak(item)}</li>`).join('')}</ul>`;
+        }
+
+        const mainText = normalizedItems[0] || String(reply || '').trim() || 'No response yet. Try asking with more specific context.';
+        return `<div class="font-semibold mb-1">AI</div><div>${escapeAndBreak(mainText)}</div>`;
     }
 
     function renderQuickPrompts() {
         const prompts = promptsByMode[chatMode] || [];
-        chatQuickPrompts.innerHTML = prompts.map(prompt => `<button type="button" class="chat-quick-prompt px-2.5 py-1 rounded-full border text-[11px]">${escapeHtml(prompt)}</button>`).join('');
+        chatQuickPrompts.innerHTML = prompts.map(prompt => `<button type="button" class="chat-quick-prompt px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-600 text-[11px] hover:bg-slate-100 dark:hover:bg-slate-800">${escapeHtml(prompt)}</button>`).join('');
         Array.from(chatQuickPrompts.querySelectorAll('.chat-quick-prompt')).forEach((button, index) => {
             button.addEventListener('click', () => {
                 chatInput.value = prompts[index] || '';
@@ -273,13 +302,15 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function addLine(role, text) {
-        const div = document.createElement('div');
-        div.className = role === 'user' ? 'text-right' : 'text-left';
-        div.textContent = text;
-        chatLog.appendChild(div);
-        chatLog.scrollTop = chatLog.scrollHeight;
-        return div;
+    function setChatMode(mode) {
+        chatMode = mode;
+        chatModeButtons.forEach(button => {
+            const active = button.dataset.chatMode === mode;
+            button.classList.toggle('font-semibold', active);
+            button.classList.toggle('border-indigo-500', active);
+            button.classList.toggle('text-indigo-600', active);
+        });
+        renderQuickPrompts();
     }
 
     async function sendChatMessage() {
@@ -288,20 +319,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
         isSendingChat = true;
         chatSendBtn.disabled = true;
-        addLine('user', 'You: ' + message);
+
+        addMessageBubble('user', `<div class="font-semibold mb-1">You • ${escapeHtml(modeLabels[chatMode] || 'Chat')}</div><div>${escapeAndBreak(message)}</div>`);
         chatInput.value = '';
-        const pendingLine = addLine('ai', 'AI: Generating...');
+        const pendingBubble = addMessageBubble('ai', '<div class="font-semibold mb-1">AI</div><div>Thinking...</div>');
 
         try {
-            const res = await fetch(@json(route('ai.assistant.chat')), {method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':@json(csrf_token()),'X-Requested-With':'XMLHttpRequest'},body:JSON.stringify({mode:chatMode,message})});
+            const res = await fetch(@json(route('ai.assistant.chat')), {
+                method:'POST',
+                headers:{'Content-Type':'application/json','X-CSRF-TOKEN':@json(csrf_token()),'X-Requested-With':'XMLHttpRequest'},
+                body:JSON.stringify({mode:chatMode,message})
+            });
             const json = await res.json();
-            const reply = String(json.reply || '').trim();
-            pendingLine.textContent = 'AI: ' + (reply || 'No response yet. Try asking with more specific context.');
+            pendingBubble.innerHTML = renderAiResponse(json.reply || '', json.items || []);
         } catch {
-            pendingLine.textContent = 'AI: Failed to respond right now.';
+            pendingBubble.innerHTML = '<div class="font-semibold mb-1">AI</div><div>Failed to respond right now. Please try again.</div>';
         } finally {
             isSendingChat = false;
             chatSendBtn.disabled = false;
+            chatLog.scrollTop = chatLog.scrollHeight;
         }
     }
 
@@ -318,6 +354,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     setChatMode('linkedin_activity');
+    addMessageBubble('ai', '<div class="font-semibold mb-1">AI</div><div>Ask me for weekly LinkedIn actions, new post concepts, or networking DM drafts. I will tailor suggestions to your synced data.</div>');
 });
 </script>
 @endpush
