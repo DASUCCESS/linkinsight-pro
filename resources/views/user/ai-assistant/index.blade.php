@@ -55,8 +55,8 @@
             <textarea id="articleNotes" rows="4" class="w-full rounded-xl border-slate-300 dark:border-slate-700 px-3 py-2 text-sm" placeholder="Extra instructions (key points, story, CTA, examples, word count)..."></textarea>
 
             <div class="mt-3 flex flex-wrap gap-2">
-                <button type="button" id="suggestArticleIdeasBtn" class="px-3 py-2 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-600">Suggest Article Ideas</button>
-                <button type="button" id="generateArticlePostBtn" class="px-3 py-2 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-600">Generate LinkedIn Article Post</button>
+                <button type="button" id="suggestArticleIdeasBtn" class="px-3 py-2 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 transition">Suggest Article Ideas</button>
+                <button type="button" id="generateArticlePostBtn" class="px-3 py-2 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 transition">Generate LinkedIn Article Post</button>
             </div>
 
             <p class="text-[11px] text-slate-500 mt-2">Use “Suggest Article Ideas” first if you need inspiration, then generate a full article you can post on LinkedIn.</p>
@@ -65,8 +65,8 @@
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                     <p id="aiAssistantTitle" class="text-sm font-semibold">Output</p>
                     <div class="flex gap-2">
-                        <button type="button" id="regenAiOutputBtn" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border border-slate-300 dark:border-slate-600">Regenerate</button>
-                        <button type="button" id="copyAiOutputBtn" class="px-3 py-1.5 rounded-full text-xs border border-slate-300 dark:border-slate-600">Copy</button>
+                        <button type="button" id="regenAiOutputBtn" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 transition">Regenerate</button>
+                        <button type="button" id="copyAiOutputBtn" class="px-3 py-1.5 rounded-full text-xs border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 transition">Copy</button>
                     </div>
                 </div>
                 <ul id="aiAssistantList" class="space-y-2 list-disc list-inside text-sm text-slate-700 dark:text-slate-200">
@@ -98,7 +98,7 @@
             <textarea id="chatInput" rows="3" class="w-full rounded-2xl border-slate-300 dark:border-slate-700 px-3 py-2 text-sm" placeholder="Ask a LinkedIn-focused question..."></textarea>
             <div class="flex justify-between items-center mt-2">
                 <p class="text-[11px] text-slate-500">Enter to send • Shift+Enter for a new line</p>
-                <button type="button" id="chatSendBtn" class="px-4 py-1.5 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-600">Send</button>
+                <button type="button" id="chatSendBtn" class="px-4 py-1.5 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 transition">Send</button>
             </div>
         </div>
     </aside>
@@ -109,7 +109,12 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const spinnerMarkup = '<svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><circle class="opacity-30" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle><path class="opacity-90" d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path></svg>';
-    const buttons = document.querySelectorAll('.ai-workflow-btn');
+
+    const endpointAiAssistant = @json(route('dashboard.ai-assistant'));
+    const endpointAiChat = @json(route('ai.assistant.chat'));
+    const csrfToken = @json(csrf_token());
+
+    const buttons = Array.from(document.querySelectorAll('.ai-workflow-btn'));
     const aiList = document.getElementById('aiAssistantList');
     const aiTitle = document.getElementById('aiAssistantTitle');
     const aiArticleOutput = document.getElementById('aiArticleOutput');
@@ -123,115 +128,242 @@ document.addEventListener('DOMContentLoaded', function () {
     const articleGoal = document.getElementById('articleGoal');
     const articleTone = document.getElementById('articleTone');
     const articleNotes = document.getElementById('articleNotes');
-    let lastRequest = null;
-
-    function setButtonLoading(button, loading, label = 'Regenerate') {
-        if (!button) return;
-        if (loading) {
-            button.disabled = true;
-            button.dataset.originalLabel = button.dataset.originalLabel || button.textContent.trim();
-            button.innerHTML = `${spinnerMarkup}<span>${label}</span>`;
-            return;
-        }
-
-        button.disabled = false;
-        button.textContent = button.dataset.originalLabel || label;
-    }
-
-
-    function escapeHtml(value) {
-        return String(value)
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#39;');
-    }
-
-    function renderOutput(action, items) {
-        if (action === 'article_post') {
-            const article = String((items || [])[0] || '').trim();
-            aiList.classList.add('hidden');
-            aiArticleOutput.classList.remove('hidden');
-            aiArticleOutput.innerHTML = article ? escapeHtml(article) : 'No output.';
-            return;
-        }
-
-        aiArticleOutput.classList.add('hidden');
-        aiArticleOutput.textContent = '';
-        aiList.classList.remove('hidden');
-        aiList.innerHTML = items.length ? items.map(i => `<li>${escapeHtml(String(i))}</li>`).join('') : '<li>No output.</li>';
-    }
-
-    function buildArticlePrompt() {
-        return [
-            `Topic: ${(articleTopic.value || '').trim() || 'LinkedIn growth'}`,
-            `Audience: ${(articleAudience.value || '').trim() || 'Professionals on LinkedIn'}`,
-            `Goal: ${(articleGoal.value || '').trim() || 'Educate and drive engagement'}`,
-            `Tone: ${(articleTone.value || '').trim() || 'Professional'}`,
-            `Additional instructions: ${(articleNotes.value || '').trim() || 'Use clear subheadings, practical examples, and a strong CTA.'}`,
-        ].join('\n');
-    }
-
-    async function run(action, isRegen = false, inputText = null, title = null) {
-        const resolvedInput = inputText ?? aiInput.value ?? null;
-        lastRequest = { action, inputText: resolvedInput, title };
-        aiTitle.textContent = title || 'Generating...';
-        aiArticleOutput.classList.add('hidden');
-        aiArticleOutput.textContent = '';
-        aiList.classList.remove('hidden');
-        aiList.innerHTML = '<li>Please wait...</li>';
-        if (isRegen) setButtonLoading(regenBtn, true);
-
-        try {
-            const res = await fetch(@json(route('dashboard.ai-assistant')), {method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':@json(csrf_token()),'X-Requested-With':'XMLHttpRequest'},body:JSON.stringify({action,input_text:resolvedInput})});
-            const payload = await res.json();
-            const data = payload?.data || {};
-            aiTitle.textContent = title || data.title || 'Output';
-            const items = Array.isArray(data.items) ? data.items : [];
-            renderOutput(action, items);
-        } catch {
-            aiTitle.textContent = 'Output';
-            aiArticleOutput.classList.add('hidden');
-            aiArticleOutput.textContent = '';
-            aiList.classList.remove('hidden');
-            aiList.innerHTML = '<li>Could not generate output right now. Please try again.</li>';
-        } finally {
-            if (isRegen) setButtonLoading(regenBtn, false);
-        }
-    }
-
-    buttons.forEach(b => b.addEventListener('click', () => run(b.dataset.action)));
-
-    suggestArticleIdeasBtn.addEventListener('click', () => {
-        const articlePrompt = buildArticlePrompt() + '\nTask: Suggest 6 strong LinkedIn article/blog ideas with clear angles.';
-        run('post_ideas', false, articlePrompt, 'Suggested Article Ideas');
-    });
-
-    generateArticlePostBtn.addEventListener('click', () => {
-        const articlePrompt = buildArticlePrompt() + '\nTask: Write a complete blog-style LinkedIn article ready to post.';
-        run('article_post', false, articlePrompt, 'LinkedIn Article Draft');
-    });
-
-    regenBtn.addEventListener('click', () => {
-        if (!lastRequest) return;
-        run(lastRequest.action, true, lastRequest.inputText, lastRequest.title);
-    });
-
-    copyBtn.addEventListener('click', async () => {
-        const articleVisible = !aiArticleOutput.classList.contains('hidden');
-        const articleText = (aiArticleOutput.textContent || '').trim();
-        const listText = Array.from(aiList.querySelectorAll('li')).map(li => li.textContent).join('\n');
-        await navigator.clipboard.writeText(articleVisible ? articleText : listText);
-    });
 
     const chatLog = document.getElementById('chatLog');
     const chatInput = document.getElementById('chatInput');
     const chatSendBtn = document.getElementById('chatSendBtn');
     const chatQuickPrompts = document.getElementById('chatQuickPrompts');
     const chatModeButtons = Array.from(document.querySelectorAll('.chat-mode-btn'));
+
+    let lastRequest = null;
     let chatMode = 'linkedin_activity';
     let isSendingChat = false;
+    let isGenerating = false;
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function escapeAndBreak(text) {
+        return escapeHtml(String(text || '')).replace(/\n/g, '<br>');
+    }
+
+    function setButtonLoading(button, loading, fallbackLabel) {
+        if (!button) return;
+
+        if (loading) {
+            if (!button.dataset.originalLabel) {
+                button.dataset.originalLabel = button.textContent.trim();
+            }
+            button.disabled = true;
+            button.classList.add('opacity-70', 'cursor-not-allowed');
+            button.innerHTML = '<span class="inline-flex items-center gap-2">' + spinnerMarkup + '<span>' + (fallbackLabel || 'Loading') + '</span></span>';
+            return;
+        }
+
+        button.disabled = false;
+        button.classList.remove('opacity-70', 'cursor-not-allowed');
+        button.textContent = button.dataset.originalLabel || fallbackLabel || 'Submit';
+    }
+
+    function setOutputLoading(titleText) {
+        if (!aiTitle || !aiList || !aiArticleOutput) return;
+
+        aiTitle.textContent = titleText || 'Generating...';
+        aiArticleOutput.classList.add('hidden');
+        aiArticleOutput.textContent = '';
+        aiList.classList.remove('hidden');
+        aiList.innerHTML = '<li>Please wait...</li>';
+    }
+
+    function renderOutput(action, items) {
+        if (!aiList || !aiArticleOutput) return;
+
+        const safeItems = Array.isArray(items) ? items : [];
+
+        if (action === 'article_post') {
+            const article = String(safeItems[0] || '').trim();
+            aiList.classList.add('hidden');
+            aiArticleOutput.classList.remove('hidden');
+            aiArticleOutput.textContent = article || 'No output.';
+            return;
+        }
+
+        aiArticleOutput.classList.add('hidden');
+        aiArticleOutput.textContent = '';
+        aiList.classList.remove('hidden');
+        aiList.innerHTML = safeItems.length
+            ? safeItems.map(function (item) {
+                return '<li>' + escapeHtml(String(item)) + '</li>';
+            }).join('')
+            : '<li>No output.</li>';
+    }
+
+    function showOutputError(message) {
+        if (!aiTitle || !aiList || !aiArticleOutput) return;
+
+        aiTitle.textContent = 'Output';
+        aiArticleOutput.classList.add('hidden');
+        aiArticleOutput.textContent = '';
+        aiList.classList.remove('hidden');
+        aiList.innerHTML = '<li>' + escapeHtml(message || 'Could not generate output right now. Please try again.') + '</li>';
+    }
+
+    function buildArticlePrompt() {
+        return [
+            'Topic: ' + ((articleTopic && articleTopic.value.trim()) || 'LinkedIn growth'),
+            'Audience: ' + ((articleAudience && articleAudience.value.trim()) || 'Professionals on LinkedIn'),
+            'Goal: ' + ((articleGoal && articleGoal.value.trim()) || 'Educate and drive engagement'),
+            'Tone: ' + ((articleTone && articleTone.value.trim()) || 'Professional'),
+            'Additional instructions: ' + ((articleNotes && articleNotes.value.trim()) || 'Use clear subheadings, practical examples, and a strong CTA.')
+        ].join('\n');
+    }
+
+    async function postJson(url, payload) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const rawText = await response.text();
+        let data = null;
+
+        try {
+            data = rawText ? JSON.parse(rawText) : {};
+        } catch (e) {
+            throw new Error('Server returned an invalid response.');
+        }
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Request failed.');
+        }
+
+        return data;
+    }
+
+    async function run(action, triggerButton, isRegen, inputText, title) {
+        if (isGenerating) return;
+
+        const resolvedInput = inputText !== undefined && inputText !== null
+            ? inputText
+            : ((aiInput && aiInput.value) ? aiInput.value.trim() : '');
+
+        lastRequest = {
+            action: action,
+            inputText: resolvedInput,
+            title: title || 'Output'
+        };
+
+        isGenerating = true;
+        setOutputLoading(title || 'Generating...');
+
+        if (triggerButton) {
+            setButtonLoading(triggerButton, true, 'Generating');
+        }
+
+        if (isRegen) {
+            setButtonLoading(regenBtn, true, 'Regenerating');
+        }
+
+        try {
+            const payload = await postJson(endpointAiAssistant, {
+                action: action,
+                input_text: resolvedInput
+            });
+
+            const data = payload && payload.data ? payload.data : {};
+            const responseTitle = title || data.title || 'Output';
+            const items = Array.isArray(data.items) ? data.items : [];
+
+            if (aiTitle) {
+                aiTitle.textContent = responseTitle;
+            }
+
+            renderOutput(action, items);
+        } catch (error) {
+            showOutputError(error.message || 'Could not generate output right now. Please try again.');
+        } finally {
+            isGenerating = false;
+
+            if (triggerButton) {
+                setButtonLoading(triggerButton, false, 'Generate');
+            }
+
+            if (isRegen) {
+                setButtonLoading(regenBtn, false, 'Regenerate');
+            }
+        }
+    }
+
+    buttons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            run(button.dataset.action || '', button, false, null, null);
+        });
+    });
+
+    if (suggestArticleIdeasBtn) {
+        suggestArticleIdeasBtn.addEventListener('click', function () {
+            const articlePrompt = buildArticlePrompt() + '\nTask: Suggest 6 strong LinkedIn article/blog ideas with clear angles.';
+            run('post_ideas', suggestArticleIdeasBtn, false, articlePrompt, 'Suggested Article Ideas');
+        });
+    }
+
+    if (generateArticlePostBtn) {
+        generateArticlePostBtn.addEventListener('click', function () {
+            const articlePrompt = buildArticlePrompt() + '\nTask: Write a complete blog-style LinkedIn article ready to post.';
+            run('article_post', generateArticlePostBtn, false, articlePrompt, 'LinkedIn Article Draft');
+        });
+    }
+
+    if (regenBtn) {
+        regenBtn.addEventListener('click', function () {
+            if (!lastRequest) return;
+            run(lastRequest.action, null, true, lastRequest.inputText, lastRequest.title);
+        });
+    }
+
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async function () {
+            try {
+                const articleVisible = aiArticleOutput && !aiArticleOutput.classList.contains('hidden');
+                const articleText = aiArticleOutput ? (aiArticleOutput.textContent || '').trim() : '';
+                const listText = aiList
+                    ? Array.from(aiList.querySelectorAll('li')).map(function (li) {
+                        return li.textContent;
+                    }).join('\n')
+                    : '';
+
+                const textToCopy = articleVisible ? articleText : listText;
+
+                if (!textToCopy) return;
+
+                await navigator.clipboard.writeText(textToCopy);
+
+                const oldText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied';
+                setTimeout(function () {
+                    copyBtn.textContent = oldText;
+                }, 1200);
+            } catch (error) {
+                const oldText = copyBtn.textContent;
+                copyBtn.textContent = 'Copy Failed';
+                setTimeout(function () {
+                    copyBtn.textContent = oldText;
+                }, 1200);
+            }
+        });
+    }
 
     const promptsByMode = {
         linkedin_activity: [
@@ -247,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function () {
         connection_message: [
             'Write 3 custom LinkedIn connection requests for a SaaS VP Marketing.',
             'Create a follow-up DM after an accepted invite.',
-            'Write a short networking message after reading someone's post.'
+            'Write a short networking message after reading someone\'s post.'
         ]
     };
 
@@ -258,6 +390,8 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     function addMessageBubble(role, bodyHtml) {
+        if (!chatLog) return null;
+
         const row = document.createElement('div');
         row.className = role === 'user' ? 'flex justify-end' : 'flex justify-start';
 
@@ -265,8 +399,8 @@ document.addEventListener('DOMContentLoaded', function () {
         bubble.className = role === 'user'
             ? 'max-w-[85%] rounded-2xl rounded-br-md bg-indigo-600 text-white px-3 py-2 text-sm shadow-sm whitespace-pre-wrap'
             : 'max-w-[92%] rounded-2xl rounded-bl-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 text-sm shadow-sm whitespace-pre-wrap';
-        bubble.innerHTML = bodyHtml;
 
+        bubble.innerHTML = bodyHtml;
         row.appendChild(bubble);
         chatLog.appendChild(row);
         chatLog.scrollTop = chatLog.scrollHeight;
@@ -274,84 +408,128 @@ document.addEventListener('DOMContentLoaded', function () {
         return bubble;
     }
 
-    function escapeAndBreak(text) {
-        return escapeHtml(String(text || '')).replaceAll('\n', '<br>');
-    }
-
     function renderAiResponse(reply, items) {
         const normalizedItems = Array.isArray(items)
-            ? items.map(item => String(item || '').trim()).filter(Boolean)
+            ? items.map(function (item) {
+                return String(item || '').trim();
+            }).filter(Boolean)
             : [];
 
         if (normalizedItems.length > 1) {
-            return `<div class="font-semibold mb-1">AI</div><ul class="list-disc list-inside space-y-1">${normalizedItems.map(item => `<li>${escapeAndBreak(item)}</li>`).join('')}</ul>`;
+            return '<div class="font-semibold mb-1">AI</div><ul class="list-disc list-inside space-y-1">' +
+                normalizedItems.map(function (item) {
+                    return '<li>' + escapeAndBreak(item) + '</li>';
+                }).join('') +
+                '</ul>';
         }
 
         const mainText = normalizedItems[0] || String(reply || '').trim() || 'No response yet. Try asking with more specific context.';
-        return `<div class="font-semibold mb-1">AI</div><div>${escapeAndBreak(mainText)}</div>`;
+
+        return '<div class="font-semibold mb-1">AI</div><div>' + escapeAndBreak(mainText) + '</div>';
     }
 
     function renderQuickPrompts() {
+        if (!chatQuickPrompts) return;
+
         const prompts = promptsByMode[chatMode] || [];
-        chatQuickPrompts.innerHTML = prompts.map(prompt => `<button type="button" class="chat-quick-prompt px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-600 text-[11px] hover:bg-slate-100 dark:hover:bg-slate-800">${escapeHtml(prompt)}</button>`).join('');
-        Array.from(chatQuickPrompts.querySelectorAll('.chat-quick-prompt')).forEach((button, index) => {
-            button.addEventListener('click', () => {
-                chatInput.value = prompts[index] || '';
-                chatInput.focus();
+
+        chatQuickPrompts.innerHTML = prompts.map(function (prompt, index) {
+            return '<button type="button" data-index="' + index + '" class="chat-quick-prompt px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-600 text-[11px] hover:bg-slate-100 dark:hover:bg-slate-800 transition">' + escapeHtml(prompt) + '</button>';
+        }).join('');
+
+        Array.from(chatQuickPrompts.querySelectorAll('.chat-quick-prompt')).forEach(function (button) {
+            button.addEventListener('click', function () {
+                const index = parseInt(button.dataset.index || '0', 10);
+                if (chatInput) {
+                    chatInput.value = prompts[index] || '';
+                    chatInput.focus();
+                }
             });
         });
     }
 
     function setChatMode(mode) {
         chatMode = mode;
-        chatModeButtons.forEach(button => {
+
+        chatModeButtons.forEach(function (button) {
             const active = button.dataset.chatMode === mode;
+
             button.classList.toggle('font-semibold', active);
             button.classList.toggle('border-indigo-500', active);
             button.classList.toggle('text-indigo-600', active);
+            button.classList.toggle('bg-indigo-50', active);
+            button.classList.toggle('dark:bg-slate-800', active);
         });
+
         renderQuickPrompts();
     }
 
     async function sendChatMessage() {
-        const message = (chatInput.value || '').trim();
+        const message = (chatInput && chatInput.value ? chatInput.value.trim() : '');
+
         if (!message || isSendingChat) return;
 
         isSendingChat = true;
-        chatSendBtn.disabled = true;
 
-        addMessageBubble('user', `<div class="font-semibold mb-1">You • ${escapeHtml(modeLabels[chatMode] || 'Chat')}</div><div>${escapeAndBreak(message)}</div>`);
-        chatInput.value = '';
+        if (chatSendBtn) {
+            setButtonLoading(chatSendBtn, true, 'Sending');
+        }
+
+        addMessageBubble(
+            'user',
+            '<div class="font-semibold mb-1">You • ' + escapeHtml(modeLabels[chatMode] || 'Chat') + '</div><div>' + escapeAndBreak(message) + '</div>'
+        );
+
+        if (chatInput) {
+            chatInput.value = '';
+        }
+
         const pendingBubble = addMessageBubble('ai', '<div class="font-semibold mb-1">AI</div><div>Thinking...</div>');
 
         try {
-            const res = await fetch(@json(route('ai.assistant.chat')), {
-                method:'POST',
-                headers:{'Content-Type':'application/json','X-CSRF-TOKEN':@json(csrf_token()),'X-Requested-With':'XMLHttpRequest'},
-                body:JSON.stringify({mode:chatMode,message})
+            const payload = await postJson(endpointAiChat, {
+                mode: chatMode,
+                message: message
             });
-            const json = await res.json();
-            pendingBubble.innerHTML = renderAiResponse(json.reply || '', json.items || []);
-        } catch {
-            pendingBubble.innerHTML = '<div class="font-semibold mb-1">AI</div><div>Failed to respond right now. Please try again.</div>';
+
+            if (pendingBubble) {
+                pendingBubble.innerHTML = renderAiResponse(payload.reply || '', payload.items || []);
+            }
+        } catch (error) {
+            if (pendingBubble) {
+                pendingBubble.innerHTML = '<div class="font-semibold mb-1">AI</div><div>' + escapeHtml(error.message || 'Failed to respond right now. Please try again.') + '</div>';
+            }
         } finally {
             isSendingChat = false;
-            chatSendBtn.disabled = false;
-            chatLog.scrollTop = chatLog.scrollHeight;
+
+            if (chatSendBtn) {
+                setButtonLoading(chatSendBtn, false, 'Send');
+            }
+
+            if (chatLog) {
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
         }
     }
 
-    chatModeButtons.forEach(button => {
-        button.addEventListener('click', () => setChatMode(button.dataset.chatMode || 'linkedin_activity'));
+    chatModeButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            setChatMode(button.dataset.chatMode || 'linkedin_activity');
+        });
     });
 
-    chatSendBtn.addEventListener('click', sendChatMessage);
-    chatInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            sendChatMessage();
-        }
-    });
+    if (chatSendBtn) {
+        chatSendBtn.addEventListener('click', sendChatMessage);
+    }
+
+    if (chatInput) {
+        chatInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendChatMessage();
+            }
+        });
+    }
 
     setChatMode('linkedin_activity');
     addMessageBubble('ai', '<div class="font-semibold mb-1">AI</div><div>Ask me for weekly LinkedIn actions, new post concepts, or networking DM drafts. I will tailor suggestions to your synced data.</div>');

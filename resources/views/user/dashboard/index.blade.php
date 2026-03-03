@@ -9,15 +9,15 @@
         use Illuminate\Support\Carbon;
         use Illuminate\Support\Facades\Route;
 
-        $status              = $summary['status'] ?? 'empty';
+        $status               = $summary['status'] ?? 'empty';
 
-        $profile             = $summary['profile'] ?? [];
-        $times               = $summary['timeseries'] ?? [];
-        $posts               = $summary['recent_posts'] ?? [];
-        $audienceInsights    = $summary['audience_insights'] ?? null;
-        $audienceDemographics= $summary['audience_demographics'] ?? null;
-        $creatorAudience     = $summary['creator_audience'] ?? null;
-        $connectionsSample   = $summary['connections_sample'] ?? [];
+        $profile              = $summary['profile'] ?? [];
+        $times                = $summary['timeseries'] ?? [];
+        $posts                = $summary['recent_posts'] ?? [];
+        $audienceInsights     = $summary['audience_insights'] ?? null;
+        $audienceDemographics = $summary['audience_demographics'] ?? null;
+        $creatorAudience      = $summary['creator_audience'] ?? null;
+        $connectionsSample    = $summary['connections_sample'] ?? [];
 
         $hasAudienceData = !empty($audienceInsights) || !empty($audienceDemographics) || !empty($creatorAudience);
 
@@ -50,8 +50,9 @@
             <div class="flex flex-wrap items-center gap-3">
                 <button type="button"
                         id="btnConnectLinkedin"
-                        class="px-4 py-2 rounded-full text-sm font-semibold shadow-xl cursor-pointer
-                               bg-gradient-to-r from-indigo-500 to-sky-500 text-white
+                        class="inline-flex items-center justify-center px-4 py-2 rounded-xl text-sm font-semibold shadow-lg cursor-pointer
+                               bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-600
+                               focus:outline-none focus:ring-2 focus:ring-indigo-500/40
                                transition transform duration-200 hover:scale-[var(--hover-scale)]">
                     Connect LinkedIn
                 </button>
@@ -61,7 +62,6 @@
             </div>
         </div>
     @else
-
 
         {{-- Quick navigation --}}
         <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5 mb-6">
@@ -78,35 +78,59 @@
                 <div class="flex flex-wrap gap-2 text-xs">
                     @if(Route::has('user.linkedin.audience_insights.index'))
                         <a href="{{ route('user.linkedin.audience_insights.index') }}"
-                           class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 hover:scale-[var(--hover-scale)] transition">
+                           class="inline-flex items-center justify-center px-3 py-2 rounded-xl font-semibold shadow-md cursor-pointer
+                                  border border-indigo-200 dark:border-slate-700
+                                  bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-slate-100
+                                  hover:bg-indigo-100 dark:hover:bg-slate-700
+                                  focus:outline-none focus:ring-2 focus:ring-indigo-500/30
+                                  hover:scale-[var(--hover-scale)] transition">
                             Audience Insights
                         </a>
                     @endif
 
                     @if(Route::has('user.linkedin.demographics.index'))
                         <a href="{{ route('user.linkedin.demographics.index') }}"
-                           class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 hover:scale-[var(--hover-scale)] transition">
+                           class="inline-flex items-center justify-center px-3 py-2 rounded-xl font-semibold shadow-md cursor-pointer
+                                  border border-indigo-200 dark:border-slate-700
+                                  bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-slate-100
+                                  hover:bg-indigo-100 dark:hover:bg-slate-700
+                                  focus:outline-none focus:ring-2 focus:ring-indigo-500/30
+                                  hover:scale-[var(--hover-scale)] transition">
                             Demographics
                         </a>
                     @endif
 
                     @if(Route::has('user.linkedin.creator_metrics.index'))
                         <a href="{{ route('user.linkedin.creator_metrics.index') }}"
-                           class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 hover:scale-[var(--hover-scale)] transition">
+                           class="inline-flex items-center justify-center px-3 py-2 rounded-xl font-semibold shadow-md cursor-pointer
+                                  border border-indigo-200 dark:border-slate-700
+                                  bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-slate-100
+                                  hover:bg-indigo-100 dark:hover:bg-slate-700
+                                  focus:outline-none focus:ring-2 focus:ring-indigo-500/30
+                                  hover:scale-[var(--hover-scale)] transition">
                             Creator Metrics
                         </a>
                     @endif
 
                     @if(Route::has('user.linkedin.connections.index'))
                         <a href="{{ route('user.linkedin.connections.index') }}"
-                           class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 hover:scale-[var(--hover-scale)] transition">
+                           class="inline-flex items-center justify-center px-3 py-2 rounded-xl font-semibold shadow-md cursor-pointer
+                                  border border-indigo-200 dark:border-slate-700
+                                  bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-slate-100
+                                  hover:bg-indigo-100 dark:hover:bg-slate-700
+                                  focus:outline-none focus:ring-2 focus:ring-indigo-500/30
+                                  hover:scale-[var(--hover-scale)] transition">
                             Connections
                         </a>
                     @endif
 
                     @if(Route::has('user.linkedin.sync_jobs.index'))
                         <a href="{{ route('user.linkedin.sync_jobs.index') }}"
-                           class="px-3 py-1.5 rounded-full font-semibold shadow-md cursor-pointer bg-slate-900 text-slate-50 border border-slate-700 hover:scale-[var(--hover-scale)] transition">
+                           class="inline-flex items-center justify-center px-3 py-2 rounded-xl font-semibold shadow-md cursor-pointer
+                                  bg-slate-900 dark:bg-indigo-600 text-slate-50 border border-slate-900 dark:border-indigo-600
+                                  hover:bg-slate-800 dark:hover:bg-indigo-700
+                                  focus:outline-none focus:ring-2 focus:ring-indigo-500/30
+                                  hover:scale-[var(--hover-scale)] transition">
                             Sync Jobs
                         </a>
                     @endif
@@ -118,32 +142,91 @@
             <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5">
                 <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50 mb-2">AI recommendations</h3>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">AI recommendations summary available.</p>
-                <button type="button" id="btnOpenAiSummary"
-                        class="px-5 py-3 rounded-xl text-sm font-semibold shadow-xl cursor-pointer bg-gradient-to-r from-indigo-500 to-sky-500 text-white">
+                <button type="button"
+                        id="btnOpenAiSummary"
+                        class="inline-flex items-center justify-center px-5 py-3 rounded-xl text-sm font-semibold shadow-lg cursor-pointer
+                               bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-600
+                               focus:outline-none focus:ring-2 focus:ring-indigo-500/40
+                               transition transform duration-200 hover:scale-[var(--hover-scale)]">
                     AI Recommendations Summary Available, View Now
                 </button>
             </div>
+
             <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5">
                 <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50 mb-2">AI engine status</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Status: <span class="font-semibold">{{ strtoupper($aiRecommendations['source'] ?? 'local') }}</span></p>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Provider: <span class="font-semibold">Groq</span></p>
-                <a href="{{ route('ai.assistant') }}" class="inline-flex mt-3 px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-600">Open AI page</a>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                    Status: <span class="font-semibold text-slate-700 dark:text-slate-200">{{ strtoupper($aiRecommendations['source'] ?? 'local') }}</span>
+                </p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                    Provider: <span class="font-semibold text-slate-700 dark:text-slate-200">Groq</span>
+                </p>
+                <a href="{{ route('ai.assistant') }}"
+                   class="inline-flex items-center justify-center mt-3 px-3 py-2 rounded-xl text-xs font-semibold shadow-md cursor-pointer
+                          border border-indigo-200 dark:border-slate-700
+                          bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-slate-100
+                          hover:bg-indigo-100 dark:hover:bg-slate-700
+                          focus:outline-none focus:ring-2 focus:ring-indigo-500/30
+                          transition transform duration-200 hover:scale-[var(--hover-scale)]">
+                    Open AI page
+                </a>
             </div>
         </div>
 
         <div id="aiSummaryModal" class="hidden fixed inset-0 z-50">
-            <div class="absolute inset-0 bg-black/50" data-close-ai-summary></div>
-            <div class="relative mx-auto mt-20 max-w-3xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl p-6">
-                <div class="flex justify-between items-center mb-3">
-                    <h4 class="text-sm font-semibold">AI Recommendations Summary</h4>
-                    <button type="button" data-close-ai-summary class="px-2 py-1 rounded border text-xs">Close</button>
+            <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" data-close-ai-summary></div>
+
+            <div class="relative min-h-full flex items-center justify-center p-4 sm:p-6">
+                <div class="w-full max-w-3xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden">
+                    <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70">
+                        <div>
+                            <h4 class="text-base font-semibold text-slate-800 dark:text-slate-50">
+                                AI Recommendations Summary
+                            </h4>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                Overview of the latest AI-generated recommendations.
+                            </p>
+                        </div>
+
+                        <button type="button"
+                                data-close-ai-summary
+                                class="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold shadow-sm cursor-pointer
+                                       bg-slate-900 dark:bg-slate-700 text-white border border-slate-900 dark:border-slate-600
+                                       hover:bg-slate-800 dark:hover:bg-slate-600
+                                       focus:outline-none focus:ring-2 focus:ring-indigo-500/30
+                                       transition">
+                            Close
+                        </button>
+                    </div>
+
+                    <div class="px-5 py-5 max-h-[75vh] overflow-y-auto">
+                        <div class="rounded-2xl border border-indigo-100 dark:border-slate-700 bg-indigo-50/70 dark:bg-slate-800/60 p-4 mb-4">
+                            <p class="text-sm leading-6 text-slate-700 dark:text-slate-200">
+                                {{ $aiRecommendations['summary'] ?? 'No summary available yet.' }}
+                            </p>
+                        </div>
+
+                        @if(!empty($aiRecommendations['recommendations'] ?? []))
+                            <div>
+                                <h5 class="text-sm font-semibold text-slate-800 dark:text-slate-50 mb-3">
+                                    Recommended actions
+                                </h5>
+
+                                <ul class="space-y-3">
+                                    @foreach(($aiRecommendations['recommendations'] ?? []) as $item)
+                                        <li class="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3">
+                                            <span class="mt-1 h-2 w-2 rounded-full bg-indigo-600 shrink-0"></span>
+                                            <span class="text-sm leading-6 text-slate-700 dark:text-slate-200">{{ $item }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @else
+                            <p class="text-sm text-slate-500 dark:text-slate-400">
+                                No detailed recommendations available yet.
+                            </p>
+                        @endif
+                    </div>
                 </div>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">{{ $aiRecommendations['summary'] ?? 'No summary available yet.' }}</p>
-                <ul class="text-xs list-disc list-inside space-y-1 text-slate-600 dark:text-slate-300">
-                    @foreach(($aiRecommendations['recommendations'] ?? []) as $item)
-                        <li>{{ $item }}</li>
-                    @endforeach
-                </ul>
             </div>
         </div>
 
@@ -175,36 +258,41 @@
                                 @endif
                                 @if(!empty($profile['public_url']))
                                     <a href="{{ $profile['public_url'] }}" target="_blank"
-                                       class="inline-flex items-center mt-1 text-[11px] text-slate-500 dark:text-slate-400 hover:text-indigo-500 cursor-pointer">
+                                       class="inline-flex items-center mt-1 text-[11px] font-medium text-indigo-600 dark:text-sky-400 hover:text-indigo-700 dark:hover:text-sky-300 cursor-pointer">
                                         {{ $displayName }} on LinkedIn
                                     </a>
                                 @endif
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
                             <button type="button"
                                     id="btnSyncNow"
-                                    class="px-3 py-1.5 rounded-full text-xs font-semibold shadow-md cursor-pointer
-                                           bg-slate-900 text-slate-50 border border-slate-700
+                                    class="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold shadow-md cursor-pointer
+                                           bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-600
+                                           focus:outline-none focus:ring-2 focus:ring-indigo-500/30
                                            transition transform duration-200 hover:scale-[var(--hover-scale)]">
                                 Sync now
                             </button>
 
                             <button type="button"
                                     id="btnOpenExtension"
-                                    class="px-3 py-1.5 rounded-full text-xs font-semibold shadow-md cursor-pointer
-                                           border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900
-                                           text-slate-700 dark:text-slate-100
+                                    class="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold shadow-md cursor-pointer
+                                           border border-indigo-200 dark:border-slate-700
+                                           bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-slate-100
+                                           hover:bg-indigo-100 dark:hover:bg-slate-700
+                                           focus:outline-none focus:ring-2 focus:ring-indigo-500/30
                                            transition transform duration-200 hover:scale-[var(--hover-scale)]">
                                 Open extension
                             </button>
 
                             @if(Route::has('user.linkedin.analytics.index'))
                                 <a href="{{ route('user.linkedin.analytics.index') }}"
-                                   class="px-3 py-1.5 rounded-full text-xs font-semibold shadow-md cursor-pointer
-                                          border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900
-                                          text-slate-700 dark:text-slate-100
+                                   class="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold shadow-md cursor-pointer
+                                          border border-indigo-200 dark:border-slate-700
+                                          bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-slate-100
+                                          hover:bg-indigo-100 dark:hover:bg-slate-700
+                                          focus:outline-none focus:ring-2 focus:ring-indigo-500/30
                                           transition transform duration-200 hover:scale-[var(--hover-scale)]">
                                     Open analytics
                                 </a>
@@ -329,14 +417,14 @@
                                         {{ $post['content'] ?? 'No content preview' }}
                                     </div>
 
-                                    <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-                                        <div class="flex items-center gap-3">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                                        <div class="flex flex-wrap items-center gap-3">
                                             <span>{{ number_format($post['impressions'] ?? 0) }} impressions</span>
                                             <span>{{ number_format($post['reactions'] ?? 0) }} reactions</span>
                                             <span>{{ number_format($post['comments'] ?? 0) }} comments</span>
                                         </div>
                                         @if(!empty($post['permalink']))
-                                            <a href="{{ $post['permalink'] }}" target="_blank" class="underline cursor-pointer">
+                                            <a href="{{ $post['permalink'] }}" target="_blank" class="font-medium text-indigo-600 dark:text-sky-400 underline cursor-pointer">
                                                 View
                                             </a>
                                         @endif
@@ -348,8 +436,11 @@
                         @if(Route::has('user.linkedin.analytics.index'))
                             <div class="mt-4">
                                 <a href="{{ route('user.linkedin.analytics.index') }}"
-                                   class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold shadow-md cursor-pointer
-                                          bg-slate-900 text-slate-50 border border-slate-700 hover:scale-[var(--hover-scale)] transition">
+                                   class="inline-flex items-center px-3 py-2 rounded-xl text-xs font-semibold shadow-md cursor-pointer
+                                          bg-slate-900 dark:bg-indigo-600 text-slate-50 border border-slate-900 dark:border-indigo-600
+                                          hover:bg-slate-800 dark:hover:bg-indigo-700
+                                          focus:outline-none focus:ring-2 focus:ring-indigo-500/30
+                                          transition transform duration-200 hover:scale-[var(--hover-scale)]">
                                     View all posts and analytics
                                 </a>
                             </div>
@@ -370,7 +461,12 @@
                         <div class="flex items-center gap-2 text-[11px]">
                             @if(Route::has('user.linkedin.audience_insights.index'))
                                 <a href="{{ route('user.linkedin.audience_insights.index') }}"
-                                   class="px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
+                                   class="inline-flex items-center justify-center px-2.5 py-1.5 rounded-xl font-semibold shadow-sm cursor-pointer
+                                          border border-indigo-200 dark:border-slate-700
+                                          bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-slate-100
+                                          hover:bg-indigo-100 dark:hover:bg-slate-700
+                                          focus:outline-none focus:ring-2 focus:ring-indigo-500/30
+                                          hover:scale-[var(--hover-scale)] transition">
                                     Details
                                 </a>
                             @endif
@@ -388,17 +484,17 @@
                     @else
                         <div class="space-y-2 text-[11px] text-slate-500 dark:text-slate-400">
                             @if($demoFollowersCount)
-                                <div class="flex items-center justify-between">
+                                <div class="flex items-center justify-between gap-3">
                                     <span>Followers tracked</span>
-                                    <span class="font-semibold text-slate-800 dark:text-slate-50">
+                                    <span class="font-semibold text-slate-800 dark:text-slate-50 text-right">
                                         {{ number_format($demoFollowersCount) }}
                                     </span>
                                 </div>
                             @endif
 
-                            <div class="flex items-center justify-between">
+                            <div class="flex items-center justify-between gap-3">
                                 <span>Latest snapshot</span>
-                                <span class="font-medium text-slate-700 dark:text-slate-200">
+                                <span class="font-medium text-slate-700 dark:text-slate-200 text-right">
                                     {{ $demoDate ?? $insightDate ?? $creatorDate ?? 'n/a' }}
                                 </span>
                             </div>
@@ -407,15 +503,20 @@
                 </div>
 
                 {{-- Recent sync activity --}}
-                <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6">
-                    <div class="flex items-center justify-between mb-3">
+                <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 overflow-hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                         <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
                             Recent sync activity
                         </h3>
 
                         @if(Route::has('user.linkedin.sync_jobs.index'))
                             <a href="{{ route('user.linkedin.sync_jobs.index') }}"
-                               class="px-2.5 py-1 rounded-full text-[11px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
+                               class="inline-flex items-center justify-center px-2.5 py-1.5 rounded-xl text-[11px] font-semibold shadow-sm cursor-pointer
+                                      border border-indigo-200 dark:border-slate-700
+                                      bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-slate-100
+                                      hover:bg-indigo-100 dark:hover:bg-slate-700
+                                      focus:outline-none focus:ring-2 focus:ring-indigo-500/30
+                                      hover:scale-[var(--hover-scale)] transition self-start sm:self-auto">
                                 View all
                             </a>
                         @endif
@@ -430,43 +531,43 @@
                             @foreach($syncJobs as $job)
                                 @php
                                     $statusColor = match($job->status) {
-                                        'success' => 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30',
-                                        'failed'  => 'bg-rose-500/10 text-rose-500 border-rose-500/30',
-                                        'running' => 'bg-amber-500/10 text-amber-500 border-amber-500/30',
-                                        default   => 'bg-slate-500/10 text-slate-500 border-slate-500/30',
+                                        'success' => 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+                                        'failed'  => 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30',
+                                        'running' => 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
+                                        default   => 'bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/30',
                                     };
                                 @endphp
                                 <div class="rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <span class="text-[11px] text-slate-500 dark:text-slate-400">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                                        <span class="text-[11px] text-slate-500 dark:text-slate-400 break-words">
                                             {{ ucfirst($job->type) }} · {{ ucfirst($job->source) }}
                                         </span>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] border {{ $statusColor }}">
+                                        <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-semibold border {{ $statusColor }} w-fit">
                                             {{ ucfirst($job->status) }}
                                         </span>
                                     </div>
 
-                                    <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-                                        <span>
+                                    <div class="flex flex-col gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                        <span class="break-words">
                                             Started: {{ optional($job->started_at)->diffForHumans() ?? $job->created_at->diffForHumans() }}
                                         </span>
                                         @if($job->finished_at)
-                                            <span>
+                                            <span class="break-words">
                                                 Finished: {{ $job->finished_at->diffForHumans() }}
                                             </span>
                                         @endif
                                     </div>
 
                                     @if($job->status === 'failed' && $job->error_message)
-                                        <div class="mt-1 text-[11px] text-rose-400">
-                                            {{ Str::limit($job->error_message, 90) }}
+                                        <div class="mt-2 rounded-lg border border-rose-200 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/10 px-2.5 py-2 text-[11px] text-rose-600 dark:text-rose-300 break-words">
+                                            {{ Str::limit($job->error_message, 140) }}
                                         </div>
                                     @endif
                                 </div>
                             @endforeach
                         </div>
 
-                        <div class="mt-3">
+                        <div class="mt-4 overflow-x-auto">
                             {{ $syncJobs->links() }}
                         </div>
                     @endif
@@ -474,7 +575,7 @@
 
                 {{-- Latest connections (sample) --}}
                 <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5">
-                    <div class="flex items-center justify-between mb-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
                         <div>
                             <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
                                 Latest connections
@@ -486,7 +587,12 @@
 
                         @if(Route::has('user.linkedin.connections.index'))
                             <a href="{{ route('user.linkedin.connections.index') }}"
-                               class="px-2.5 py-1 rounded-full text-[11px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
+                               class="inline-flex items-center justify-center px-2.5 py-1.5 rounded-xl text-[11px] font-semibold shadow-sm cursor-pointer
+                                      border border-indigo-200 dark:border-slate-700
+                                      bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-slate-100
+                                      hover:bg-indigo-100 dark:hover:bg-slate-700
+                                      focus:outline-none focus:ring-2 focus:ring-indigo-500/30
+                                      hover:scale-[var(--hover-scale)] transition self-start sm:self-auto">
                                 View all
                             </a>
                         @endif
@@ -503,35 +609,39 @@
                                     $cnRaw = trim((string) ($connection['full_name'] ?? ''));
                                     $connName = ($cnRaw !== '' && Str::lower($cnRaw) !== 'unknown') ? $cnRaw : 'Connection';
                                 @endphp
-                                <div class="flex items-start justify-between rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3">
-                                    <div class="flex items-start gap-3">
+                                <div class="flex items-start justify-between gap-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3">
+                                    <div class="flex items-start gap-3 min-w-0">
                                         @if(!empty($connection['profile_image_url']))
                                             <img src="{{ $connection['profile_image_url'] }}"
                                                  alt="{{ $connName }}"
-                                                 class="h-8 w-8 rounded-full object-cover border border-slate-200 dark:border-slate-700">
+                                                 class="h-8 w-8 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0">
                                         @else
-                                            <div class="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-[10px] font-semibold text-white shadow">
+                                            <div class="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-[10px] font-semibold text-white shadow shrink-0">
                                                 {{ strtoupper(substr($connName, 0, 2)) }}
                                             </div>
                                         @endif
 
-                                        <div>
-                                            <div class="text-[13px] font-semibold text-slate-800 dark:text-slate-50">
+                                        <div class="min-w-0">
+                                            <div class="text-[13px] font-semibold text-slate-800 dark:text-slate-50 break-words">
                                                 {{ $connName }}
                                             </div>
 
                                             @if(!empty($connection['industry']))
-                                                <div class="text-[11px] text-slate-500 dark:text-slate-400">
+                                                <div class="text-[11px] text-slate-500 dark:text-slate-400 break-words">
                                                     {{ Str::limit($connection['industry'], 70) }}
                                                 </div>
                                             @endif
                                         </div>
                                     </div>
 
-                                    <div class="flex flex-col items-end gap-1">
+                                    <div class="flex flex-col items-end gap-1 shrink-0">
                                         @if(!empty($connection['profile_url']))
                                             <a href="{{ $connection['profile_url'] }}" target="_blank"
-                                               class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
+                                               class="inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-semibold shadow-sm
+                                                      border border-indigo-200 dark:border-slate-700
+                                                      bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-slate-100
+                                                      hover:bg-indigo-100 dark:hover:bg-slate-700
+                                                      cursor-pointer hover:scale-[var(--hover-scale)] transition">
                                                 View profile
                                             </a>
                                         @endif
@@ -541,8 +651,6 @@
                         </div>
                     @endif
                 </div>
-
-
             </div>
         </div>
     @endif
@@ -552,9 +660,9 @@
 @if(($summary['status'] ?? 'empty') === 'ok' || ($summary['status'] ?? 'empty') === 'empty')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const EXT_ID   = @json($extensionId);
-    const EXT_URL  = @json($extensionUrl);
-    const STORE_URL= @json($storeUrl);
+    const EXT_ID    = @json($extensionId);
+    const EXT_URL   = @json($extensionUrl);
+    const STORE_URL = @json($storeUrl);
 
     function promptInstall() {
         const ok = confirm('Chrome extension is not installed. Do you want to install it now?');
@@ -582,20 +690,54 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const btnConnect = document.getElementById('btnConnectLinkedin');
-    if (btnConnect) btnConnect.addEventListener('click', function () { openExtension('connect'); });
+    if (btnConnect) {
+        btnConnect.addEventListener('click', function () {
+            openExtension('connect');
+        });
+    }
 
     const btnSync = document.getElementById('btnSyncNow');
-    if (btnSync) btnSync.addEventListener('click', function () { openExtension('sync'); });
+    if (btnSync) {
+        btnSync.addEventListener('click', function () {
+            openExtension('sync');
+        });
+    }
 
     const btnOpen = document.getElementById('btnOpenExtension');
-    if (btnOpen) btnOpen.addEventListener('click', function () { openExtension(''); });
+    if (btnOpen) {
+        btnOpen.addEventListener('click', function () {
+            openExtension('');
+        });
+    }
 
     const openAiSummary = document.getElementById('btnOpenAiSummary');
     const aiSummaryModal = document.getElementById('aiSummaryModal');
     const closeSummaryEls = document.querySelectorAll('[data-close-ai-summary]');
+
+    function openSummaryModal() {
+        if (!aiSummaryModal) return;
+        aiSummaryModal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeSummaryModal() {
+        if (!aiSummaryModal) return;
+        aiSummaryModal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
     if (openAiSummary && aiSummaryModal) {
-        openAiSummary.addEventListener('click', () => aiSummaryModal.classList.remove('hidden'));
-        closeSummaryEls.forEach((el) => el.addEventListener('click', () => aiSummaryModal.classList.add('hidden')));
+        openAiSummary.addEventListener('click', openSummaryModal);
+
+        closeSummaryEls.forEach((el) => {
+            el.addEventListener('click', closeSummaryModal);
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !aiSummaryModal.classList.contains('hidden')) {
+                closeSummaryModal();
+            }
+        });
     }
 });
 </script>
@@ -657,9 +799,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const bSearch = bounds(search, 0.20);
 
     const rootStyle      = getComputedStyle(document.documentElement);
-    const colorPrimary   = rootStyle.getPropertyValue('--color-primary').trim()   || '#4f46e5';
+    const colorPrimary   = rootStyle.getPropertyValue('--color-primary').trim() || '#4f46e5';
     const colorSecondary = rootStyle.getPropertyValue('--color-secondary').trim() || '#0ea5e9';
-    const colorAccent    = rootStyle.getPropertyValue('--color-accent').trim()    || '#f97316';
+    const colorAccent    = rootStyle.getPropertyValue('--color-accent').trim() || '#f97316';
     const textColor      = rootStyle.getPropertyValue('--color-text-secondary').trim() || '#6b7280';
 
     const commonOptions = {

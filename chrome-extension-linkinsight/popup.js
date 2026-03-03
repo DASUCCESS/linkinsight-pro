@@ -54,7 +54,6 @@ function normalizeLinkedInUrl(url, { keepQuery = true } = {}) {
 
     return u.toString();
   } catch {
-    // fallback (best-effort)
     let out = stripHash(raw);
     out = out.replace(/^https:\/\/(m|mobile)\.linkedin\.com/i, 'https://www.linkedin.com');
     out = out.replace(/^https:\/\/linkedin\.com/i, 'https://www.linkedin.com');
@@ -87,17 +86,12 @@ function detectPageType(url) {
   const u = normalizeLinkedInUrl(url, { keepQuery: true });
   const pathOnly = getPathOnly(u);
 
-  // Profile root: https://www.linkedin.com/in/<id>/
   if (/^https:\/\/www\.linkedin\.com\/in\/[^/]+\/?$/.test(pathOnly + '/')) return 'Profile';
-
-  // Any profile activity route: /in/<id>/recent-activity/<category>/
   if (/^https:\/\/www\.linkedin\.com\/in\/[^/]+\/recent-activity\/[^/]+\/?$/.test(pathOnly + '/')) return 'Profile activity';
 
-  // Creator analytics
   if (/^https:\/\/www\.linkedin\.com\/analytics\/creator\/content\/?$/.test(pathOnly)) return 'Creator content analytics';
   if (/^https:\/\/www\.linkedin\.com\/analytics\/creator\/audience\/?$/.test(pathOnly)) return 'Creator audience analytics';
 
-  // Demographic detail (followers)
   if (/^https:\/\/www\.linkedin\.com\/analytics\/demographic-detail\/urn:li:fsd_profile:profile\/?$/.test(pathOnly)) {
     const sp = getSearchParams(u);
     const metricType = (sp.get('metricType') || '').toUpperCase();
@@ -105,7 +99,6 @@ function detectPageType(url) {
     return 'Demographic detail';
   }
 
-  // Connections list
   if (/^https:\/\/www\.linkedin\.com\/mynetwork\/invite-connect\/connections\/?$/.test(pathOnly)) return 'Connections';
 
   if (/^https:\/\/www\.linkedin\.com\//.test(u)) return 'LinkedIn page';
@@ -123,14 +116,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const openProfileBtn = document.getElementById('openProfileBtn');
   const openActivityBtn = document.getElementById('openActivityBtn');
-  const openCreatorContentBtn = document.getElementById('openCreatorContentBtn');
   const openCreatorAudienceBtn = document.getElementById('openCreatorAudienceBtn');
   const openDemographicsBtn = document.getElementById('openDemographicsBtn');
   const openConnectionsBtn = document.getElementById('openConnectionsBtn');
 
   const syncProfileBtn = document.getElementById('syncProfileBtn');
   const syncPostsBtn = document.getElementById('syncPostsBtn');
-  const syncCreatorContentBtn = document.getElementById('syncCreatorContentBtn');
   const syncCreatorAudienceBtn = document.getElementById('syncCreatorAudienceBtn');
   const syncDemographicsBtn = document.getElementById('syncDemographicsBtn');
   const syncConnectionsBtn = document.getElementById('syncConnectionsBtn');
@@ -234,7 +225,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Initial API status
   chrome.storage.sync.get(['li_api_base_url', 'li_api_token'], cfg => {
     if (cfg.li_api_base_url && cfg.li_api_token) {
       apiStatusText.textContent = 'API: ready';
@@ -247,14 +237,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function setButtonStatesByPageType(pt) {
     syncProfileBtn.disabled = true;
     syncPostsBtn.disabled = true;
-    syncCreatorContentBtn.disabled = true;
     syncCreatorAudienceBtn.disabled = true;
     syncDemographicsBtn.disabled = true;
     syncConnectionsBtn.disabled = true;
 
     if (pt === 'Profile') syncProfileBtn.disabled = false;
     if (pt === 'Profile activity') syncPostsBtn.disabled = false;
-    if (pt === 'Creator content analytics') syncCreatorContentBtn.disabled = false;
     if (pt === 'Creator audience analytics') syncCreatorAudienceBtn.disabled = false;
     if (pt === 'Followers demographics' || pt === 'Demographic detail') syncDemographicsBtn.disabled = false;
     if (pt === 'Connections') syncConnectionsBtn.disabled = false;
@@ -280,10 +268,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Detect current tab (initial load)
   updateContextFromActiveTab();
 
-  // Refresh tab
   if (refreshBtn) {
     refreshBtn.addEventListener('click', () => {
       setStatus('Refreshing tab...', 'info');
@@ -297,7 +283,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         chrome.tabs.reload(tab.id, {}, () => {
-          // Give LinkedIn a moment to re-render before we re-detect
           setTimeout(() => {
             updateContextFromActiveTab();
             setStatus('Tab refreshed. If LinkedIn finished loading, sync now.', 'success');
@@ -308,7 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Open options
   if (openOptionsLink) {
     openOptionsLink.addEventListener('click', e => {
       e.preventDefault();
@@ -317,7 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Open profile
   if (openProfileBtn) {
     openProfileBtn.addEventListener('click', () => {
       getSavedProfileUrl(profileUrl => {
@@ -330,7 +313,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Open activity
   if (openActivityBtn) {
     openActivityBtn.addEventListener('click', () => {
       getActiveTab(tab => {
@@ -343,18 +325,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Open creator content analytics
-  if (openCreatorContentBtn) {
-    openCreatorContentBtn.addEventListener('click', () => {
-      const targetUrl = 'https://www.linkedin.com/analytics/creator/content/';
-      getActiveTab(tab => {
-        if (!tab) chrome.tabs.create({ url: targetUrl });
-        else chrome.tabs.update(tab.id, { url: targetUrl });
-      });
-    });
-  }
-
-  // Open creator audience analytics
   if (openCreatorAudienceBtn) {
     openCreatorAudienceBtn.addEventListener('click', () => {
       const targetUrl = 'https://www.linkedin.com/analytics/creator/audience/';
@@ -365,7 +335,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Open followers demographics detail
   if (openDemographicsBtn) {
     openDemographicsBtn.addEventListener('click', () => {
       const targetUrl =
@@ -377,7 +346,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Open connections
   if (openConnectionsBtn) {
     openConnectionsBtn.addEventListener('click', () => {
       const targetUrl = 'https://www.linkedin.com/mynetwork/invite-connect/connections/';
@@ -398,7 +366,6 @@ document.addEventListener('DOMContentLoaded', () => {
     extraSummaryDiv.style.display = 'block';
   }
 
-  // Sync profile
   if (syncProfileBtn) {
     syncProfileBtn.addEventListener('click', () => {
       setStatus('Reading profile from the current tab...', 'info');
@@ -453,7 +420,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Sync posts/activity
   if (syncPostsBtn) {
     syncPostsBtn.addEventListener('click', () => {
       setStatus('Reading activity from the current tab...', 'info');
@@ -523,61 +489,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Sync creator content analytics -> /linkedin/sync/posts
-  if (syncCreatorContentBtn) {
-    syncCreatorContentBtn.addEventListener('click', () => {
-      setStatus('Reading creator content analytics from this tab...', 'info');
-      syncCreatorContentBtn.disabled = true;
-
-      getActiveTab(tab => {
-        if (!tab) {
-          setStatus('No active tab. Open Creator content analytics first.', 'error');
-          syncCreatorContentBtn.disabled = false;
-          return;
-        }
-
-        chrome.tabs.sendMessage(tab.id, { action: 'scrapeCreatorContent' }, response => {
-          if (chrome.runtime.lastError) {
-            setStatus('Could not read this tab. Refresh and try again.', 'error');
-            syncCreatorContentBtn.disabled = false;
-            return;
-          }
-
-          if (!response || !response.success) {
-            const code = response && response.error;
-            let friendly = 'Could not read creator content analytics. Refresh the page and try again.';
-            if (code === 'NOT_CREATOR_CONTENT_PAGE') friendly = 'Open https://www.linkedin.com/analytics/creator/content/ then try again.';
-            if (code === 'NO_DATA') friendly = 'No post rows were detected. Scroll a bit and try again.';
-            setStatus(friendly, 'error');
-            syncCreatorContentBtn.disabled = false;
-            return;
-          }
-
-          const payload = response.payload || {};
-          const posts = payload.posts || [];
-
-          showExtraSummary([`Detected rows: ${posts.length}`, `Metric date: ${payload.metric_date || '(auto)'}`]);
-
-          getProfileUrlForPayload(tab.url || '', publicUrl => {
-            setStatus(`Sending ${posts.length} post metrics to LinkInsight Pro...`, 'info');
-
-            postToApi('/api/linkedin/sync/posts', {
-              public_url: publicUrl,
-              metric_date: payload.metric_date || null,
-              posts
-            })
-              .then(() => setStatus(`Creator content synced (${posts.length} rows).`, 'success'))
-              .catch(err => setStatus('Creator content sync failed: ' + err, 'error'))
-              .finally(() => {
-                syncCreatorContentBtn.disabled = false;
-              });
-          });
-        });
-      });
-    });
-  }
-
-  // Sync creator audience analytics -> /linkedin/sync/creator-audience
   if (syncCreatorAudienceBtn) {
     syncCreatorAudienceBtn.addEventListener('click', () => {
       setStatus('Reading creator audience analytics from this tab...', 'info');
@@ -631,7 +542,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Sync followers demographics -> /linkedin/sync/audience-demographics
   if (syncDemographicsBtn) {
     syncDemographicsBtn.addEventListener('click', () => {
       setStatus('Reading followers demographics from this tab...', 'info');
@@ -686,7 +596,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Sync connections -> /linkedin/sync/connections
   if (syncConnectionsBtn) {
     syncConnectionsBtn.addEventListener('click', () => {
       setStatus('Reading connections from this tab...', 'info');

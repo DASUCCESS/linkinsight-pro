@@ -171,6 +171,10 @@
       gap: 4px;
       transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease, border-color 0.16s ease;
       outline: none;
+      min-height: 36px;
+      width: 100%;
+      text-align: center;
+      white-space: nowrap;
     }
 
     button.primary {
@@ -246,6 +250,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
     }
 
     .footer-link {
@@ -302,7 +307,6 @@
       </div>
     </div>
 
-    <!-- Refresh button separated completely -->
     <div class="refresh-row">
       <button id="refreshBtn" class="secondary">
         <span class="icon">↻</span><span>Refresh tab</span>
@@ -318,16 +322,13 @@
       <button id="syncProfileBtn" class="primary"><span class="icon">⇅</span><span>Sync profile</span></button>
       <button id="syncPostsBtn" class="primary"><span class="icon">⇅</span><span>Sync posts</span></button>
 
-      <button id="openCreatorContentBtn" class="secondary"><span class="icon">⟶</span><span>Creator content</span></button>
       <button id="openCreatorAudienceBtn" class="secondary"><span class="icon">⟶</span><span>Creator audience</span></button>
-
-      <button id="syncCreatorContentBtn" class="primary"><span class="icon">⇅</span><span>Sync content</span></button>
-      <button id="syncCreatorAudienceBtn" class="primary"><span class="icon">⇅</span><span>Sync audience</span></button>
-
       <button id="openDemographicsBtn" class="secondary"><span class="icon">⟶</span><span>Followers demo</span></button>
-      <button id="openConnectionsBtn" class="secondary"><span class="icon">⟶</span><span>Connections</span></button>
 
+      <button id="syncCreatorAudienceBtn" class="primary"><span class="icon">⇅</span><span>Sync audience</span></button>
       <button id="syncDemographicsBtn" class="primary"><span class="icon">⇅</span><span>Sync demo</span></button>
+
+      <button id="openConnectionsBtn" class="secondary"><span class="icon">⟶</span><span>Connections</span></button>
       <button id="syncConnectionsBtn" class="primary"><span class="icon">⇅</span><span>Sync connections</span></button>
     </div>
 
@@ -335,7 +336,7 @@
       <span>Refresh: use Refresh tab after LinkedIn loads, then sync.</span>
       <span>Profile: open https://www.linkedin.com/in/your-handle/ then Sync profile.</span>
       <span>Posts: open Activity (recent-activity) then Sync posts.</span>
-      <span>Creator: open Creator content/audience pages then Sync content/audience.</span>
+      <span>Creator: open Creator audience page then Sync audience.</span>
       <span>Followers demo: open demographic-detail page then Sync demo.</span>
       <span>Connections: open connections page then Sync connections.</span>
     </div>
@@ -345,8 +346,6 @@
     <div class="summary-section">
       <div id="profileSummary" style="display:none;">
         <p><strong>Name:</strong> <span id="profileName"></span></p>
-        <p><strong>Headline:</strong> <span id="profileHeadline"></span></p>
-        <p><strong>Location:</strong> <span id="profileLocation"></span></p>
         <p><strong>Connections:</strong> <span id="profileConnections"></span></p>
         <p><strong>Followers:</strong> <span id="profileFollowers"></span></p>
         <p><strong>Profile views:</strong> <span id="profileViews"></span></p>

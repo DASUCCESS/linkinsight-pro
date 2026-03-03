@@ -13,10 +13,10 @@
         $filter    = $summary['filter'] ?? [];
 
         // keep demographics only
-        $demographics    = $summary['audience_demographics'] ?? [];
-        $demoDate        = $demographics['snapshot_date'] ?? null;
-        $followersCount  = $demographics['followers_count'] ?? null;
-        $demoCats        = $demographics['demographics'] ?? [];
+        $demographics   = $summary['audience_demographics'] ?? [];
+        $demoDate       = $demographics['snapshot_date'] ?? null;
+        $followersCount = $demographics['followers_count'] ?? null;
+        $demoCats       = $demographics['demographics'] ?? [];
 
         // normalize profile name to avoid "Unknown" showing
         $rawName = trim((string) ($profile['name'] ?? ''));
@@ -34,7 +34,6 @@
         $publicUrl = ($rawPublicUrl === '' || strtolower($rawPublicUrl) === 'unknown') ? null : $rawPublicUrl;
 
         $initialsSource = $displayName ?: 'LI';
-        $initials = strtoupper(mb_substr($initialsSource, 0, 2));
     @endphp
 
     @if($status === 'empty')
@@ -48,18 +47,33 @@
         </div>
     @else
         <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 mb-6">
-            <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">AI recommendations & analytics insights</h3>
-                <span class="text-[11px] px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
+                    AI recommendations & analytics insights
+                </h3>
+                <span class="inline-flex items-center justify-center text-[11px] px-3 py-1.5 rounded-xl font-semibold shadow-sm
+                             border border-indigo-200 dark:border-slate-700
+                             bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-slate-100 w-fit">
                     {{ strtoupper($aiRecommendations['source'] ?? 'local') }}
                 </span>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">{{ $aiRecommendations['summary'] ?? 'No AI summary available.' }}</p>
-            <ul class="list-disc list-inside text-xs text-slate-500 dark:text-slate-400 space-y-1">
-                @foreach(($aiRecommendations['recommendations'] ?? []) as $item)
-                    <li>{{ $item }}</li>
-                @endforeach
-            </ul>
+
+            <div class="rounded-2xl border border-indigo-100 dark:border-slate-700 bg-indigo-50/70 dark:bg-slate-800/60 p-4 mb-4">
+                <p class="text-sm leading-6 text-slate-700 dark:text-slate-200">
+                    {{ $aiRecommendations['summary'] ?? 'No AI summary available.' }}
+                </p>
+            </div>
+
+            @if(!empty($aiRecommendations['recommendations'] ?? []))
+                <ul class="space-y-3">
+                    @foreach(($aiRecommendations['recommendations'] ?? []) as $item)
+                        <li class="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3">
+                            <span class="mt-1 h-2 w-2 rounded-full bg-indigo-600 shrink-0"></span>
+                            <span class="text-sm leading-6 text-slate-700 dark:text-slate-200">{{ $item }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
         </div>
 
         <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 mb-6">
@@ -69,10 +83,6 @@
                         <img src="{{ $profile['profile_image_url'] }}"
                              alt="{{ $displayName }}"
                              class="h-11 w-11 rounded-full object-cover border border-slate-200 dark:border-slate-700">
-                    @else
-                        <div class="h-11 w-11 rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-sm font-semibold text-white shadow">
-                            {{ $initials }}
-                        </div>
                     @endif
                     <div>
                         <div class="text-sm font-semibold text-slate-800 dark:text-slate-50">
@@ -85,7 +95,7 @@
                         @endif
                         @if($publicUrl)
                             <a href="{{ $publicUrl }}" target="_blank"
-                               class="inline-flex items-center mt-1 text-[11px] text-slate-500 dark:text-slate-400 hover:text-indigo-500 cursor-pointer">
+                               class="inline-flex items-center mt-1 text-[11px] font-medium text-indigo-600 dark:text-sky-400 hover:text-indigo-700 dark:hover:text-sky-300 cursor-pointer">
                                 View on LinkedIn
                             </a>
                         @endif
@@ -97,13 +107,16 @@
                     <input type="date"
                            name="from"
                            value="{{ request('from', $filter['from'] ?? '') }}"
-                           class="border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200">
+                           class="border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200 shadow-sm">
                     <input type="date"
                            name="to"
                            value="{{ request('to', $filter['to'] ?? '') }}"
-                           class="border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200">
+                           class="border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200 shadow-sm">
                     <button type="submit"
-                            class="px-3 py-1.5 rounded-full text-xs font-semibold shadow-md cursor-pointer bg-slate-900 text-slate-50 border border-slate-700 hover:scale-[var(--hover-scale)] transition">
+                            class="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold shadow-md cursor-pointer
+                                   bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-600
+                                   focus:outline-none focus:ring-2 focus:ring-indigo-500/30
+                                   hover:scale-[var(--hover-scale)] transition">
                         Apply range
                     </button>
                 </form>
@@ -186,7 +199,7 @@
 
         {{-- Followers demographics --}}
         <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 mb-6">
-            <div class="flex items-center justify-between mb-3">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                 <div>
                     <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
                         Followers demographics
@@ -212,7 +225,7 @@
                             $items = is_array($items) ? $items : [];
                         @endphp
                         <div class="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4">
-                            <div class="flex items-center justify-between mb-2">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
                                 <div class="text-sm font-semibold text-slate-800 dark:text-slate-50">
                                     {{ $title }}
                                 </div>
@@ -231,11 +244,11 @@
                                     @endphp
 
                                     @if(!$isUnknownLabel)
-                                        <div class="flex items-center justify-between">
+                                        <div class="flex items-center justify-between gap-3">
                                             <span class="text-slate-700 dark:text-slate-200 line-clamp-1">
                                                 {{ $label }}
                                             </span>
-                                            <span class="text-slate-500 dark:text-slate-400">
+                                            <span class="text-slate-500 dark:text-slate-400 shrink-0">
                                                 {{ number_format((float) ($it['percent'] ?? 0), 1) }}%
                                             </span>
                                         </div>
@@ -255,7 +268,7 @@
         </div>
 
         {{-- Posts performance list --}}
-        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 overflow-hidden">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                 <div>
                     <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
@@ -273,16 +286,19 @@
                            name="q"
                            value="{{ request('q') }}"
                            placeholder="Search content or URL..."
-                           class="border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200">
+                           class="border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200 shadow-sm min-w-[200px]">
                     <select name="type"
-                            class="border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200">
+                            class="border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200 shadow-sm">
                         <option value="">All types</option>
                         <option value="post" @selected(request('type') === 'post')>Post</option>
                         <option value="article" @selected(request('type') === 'article')>Article</option>
                         <option value="repost" @selected(request('type') === 'repost')>Repost</option>
                     </select>
                     <button type="submit"
-                            class="px-3 py-1.5 rounded-full text-xs font-semibold shadow-md cursor-pointer bg-slate-900 text-slate-50 border border-slate-700 hover:scale-[var(--hover-scale)] transition">
+                            class="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold shadow-md cursor-pointer
+                                   bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-600
+                                   focus:outline-none focus:ring-2 focus:ring-indigo-500/30
+                                   hover:scale-[var(--hover-scale)] transition">
                         Filter
                     </button>
                 </form>
@@ -297,14 +313,14 @@
                     <table class="min-w-full">
                         <thead class="bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400">
                         <tr>
-                            <th class="px-3 py-2 text-left font-medium">Post</th>
-                            <th class="px-3 py-2 text-left font-medium">Type</th>
-                            <th class="px-3 py-2 text-left font-medium">Published</th>
-                            <th class="px-3 py-2 text-right font-medium">Impressions</th>
-                            <th class="px-3 py-2 text-right font-medium">Reactions</th>
-                            <th class="px-3 py-2 text-right font-medium">Comments</th>
-                            <th class="px-3 py-2 text-right font-medium">Reposts</th>
-                            <th class="px-3 py-2 text-right font-medium">Actions</th>
+                            <th class="px-3 py-3 text-left font-medium">Post</th>
+                            <th class="px-3 py-3 text-left font-medium">Type</th>
+                            <th class="px-3 py-3 text-left font-medium">Published</th>
+                            <th class="px-3 py-3 text-right font-medium">Impressions</th>
+                            <th class="px-3 py-3 text-right font-medium">Reactions</th>
+                            <th class="px-3 py-3 text-right font-medium">Comments</th>
+                            <th class="px-3 py-3 text-right font-medium">Reposts</th>
+                            <th class="px-3 py-3 text-right font-medium">Actions</th>
                         </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
@@ -312,50 +328,59 @@
                             @php
                                 $latestMetric = $post->latestMetric ?? $post->metrics?->sortByDesc('metric_date')->first();
                             @endphp
-                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/70 transition">
-                                <td class="px-3 py-2 max-w-xs">
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/70 transition align-top">
+                                <td class="px-3 py-3 max-w-xs">
                                     <div class="flex flex-col">
                                         <span class="text-slate-800 dark:text-slate-50 line-clamp-2">
                                             {{ $post->content_excerpt ?: 'No content preview' }}
                                         </span>
                                         @if($post->permalink)
                                             <a href="{{ $post->permalink }}" target="_blank"
-                                               class="text-[11px] text-indigo-500 hover:text-indigo-400 cursor-pointer mt-1">
+                                               class="text-[11px] font-medium text-indigo-600 dark:text-sky-400 hover:text-indigo-700 dark:hover:text-sky-300 cursor-pointer mt-1">
                                                 Open on LinkedIn
                                             </a>
                                         @endif
                                     </div>
                                 </td>
-                                <td class="px-3 py-2 text-slate-600 dark:text-slate-300">
+                                <td class="px-3 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
                                     {{ ucfirst($post->post_type ?? 'post') }}
                                 </td>
-                                <td class="px-3 py-2 text-slate-600 dark:text-slate-300">
+                                <td class="px-3 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
                                     {{ optional($post->posted_at)->format('Y-m-d H:i') ?? 'N/A' }}
                                 </td>
-                                <td class="px-3 py-2 text-right text-slate-700 dark:text-slate-200">
+                                <td class="px-3 py-3 text-right text-slate-700 dark:text-slate-200 whitespace-nowrap">
                                     {{ number_format($latestMetric->impressions ?? 0) }}
                                 </td>
-                                <td class="px-3 py-2 text-right text-slate-700 dark:text-slate-200">
+                                <td class="px-3 py-3 text-right text-slate-700 dark:text-slate-200 whitespace-nowrap">
                                     {{ number_format($latestMetric->reactions ?? 0) }}
                                 </td>
-                                <td class="px-3 py-2 text-right text-slate-700 dark:text-slate-200">
+                                <td class="px-3 py-3 text-right text-slate-700 dark:text-slate-200 whitespace-nowrap">
                                     {{ number_format($latestMetric->comments ?? 0) }}
                                 </td>
-                                <td class="px-3 py-2 text-right text-slate-700 dark:text-slate-200">
+                                <td class="px-3 py-3 text-right text-slate-700 dark:text-slate-200 whitespace-nowrap">
                                     {{ number_format($latestMetric->reposts ?? 0) }}
                                 </td>
-                                <td class="px-3 py-2 text-right">
-                                    <div class="inline-flex items-center gap-1">
+                                <td class="px-3 py-3 text-right">
+                                    <div class="inline-flex flex-wrap items-center justify-end gap-2 min-w-[160px]">
                                         <button type="button"
-                                                class="ai-reply-comment-btn inline-flex items-center px-2.5 py-1 rounded-full text-[11px] border border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-200 cursor-pointer hover:scale-[var(--hover-scale)] transition"
+                                                class="ai-reply-comment-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold shadow-sm
+                                                       border border-indigo-200 dark:border-indigo-700
+                                                       bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-200
+                                                       cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/30
+                                                       hover:scale-[var(--hover-scale)] transition"
                                                 data-context="{{ e(($post->content_excerpt ?: 'LinkedIn post') . ' | type: ' . ($post->post_type ?: 'post')) }}"
                                                 data-post-url="{{ e($post->permalink) }}"
                                                 title="Reply comment idea with AI">
-                                            ✨ Reply Idea
+                                            <span>✨</span>
+                                            <span>Reply Idea</span>
                                         </button>
                                         @if($post->permalink)
                                             <a href="{{ $post->permalink }}" target="_blank"
-                                               class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 cursor-pointer hover:scale-[var(--hover-scale)] transition">
+                                               class="inline-flex items-center px-3 py-1.5 rounded-xl text-[11px] font-semibold shadow-sm
+                                                      border border-slate-200 dark:border-slate-700
+                                                      bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-100
+                                                      cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700
+                                                      hover:scale-[var(--hover-scale)] transition">
                                                 View
                                             </a>
                                         @endif
@@ -367,7 +392,7 @@
                     </table>
                 </div>
 
-                <div class="mt-3">
+                <div class="mt-4 overflow-x-auto">
                     {{ $postsPaginated->links() }}
                 </div>
             @endif
@@ -385,15 +410,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function setButtonLoading(button, loading, loadingLabel = 'Regenerating...') {
         if (!button) return;
+
         if (loading) {
             button.disabled = true;
-            button.dataset.originalLabel = button.dataset.originalLabel || button.textContent.trim();
+            button.classList.add('opacity-70', 'pointer-events-none');
+            button.dataset.originalLabel = button.dataset.originalLabel || button.innerHTML;
             button.innerHTML = `${spinnerMarkup}<span>${loadingLabel}</span>`;
             return;
         }
 
         button.disabled = false;
-        button.textContent = button.dataset.originalLabel || 'Regenerate';
+        button.classList.remove('opacity-70', 'pointer-events-none');
+        button.innerHTML = button.dataset.originalLabel || '<span>✨</span><span>Reply Idea</span>';
     }
 
     async function requestReplyIdea(contextText) {
@@ -420,15 +448,60 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.id = 'replyAiModal';
         modal.className = 'hidden fixed inset-0 z-50';
         modal.innerHTML = `
-            <div class="absolute inset-0 bg-black/50" data-close="1"></div>
-            <div class="relative mx-auto mt-20 max-w-2xl bg-white dark:bg-slate-900 rounded-2xl border p-5">
-                <div class="flex justify-between items-center mb-2"><h4 class="text-sm font-semibold">AI Reply Idea</h4><button data-close="1" class="px-2 py-1 border rounded text-xs">Close</button></div>
-                <p id="replyAiContext" class="text-xs text-slate-500 mb-2"></p>
-                <textarea id="replyAiText" rows="6" class="w-full rounded-xl border px-3 py-2 text-sm"></textarea>
-                <div class="flex gap-2 mt-3 justify-end">
-                    <a id="replyAiViewPost" href="#" target="_blank" class="px-3 py-1 rounded border text-xs">View Post on LinkedIn</a>
-                    <button id="replyAiRegenerate" class="px-3 py-1 rounded border text-xs">Regenerate</button>
-                    <button id="replyAiCopy" class="px-3 py-1 rounded border text-xs">Copy</button>
+            <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" data-close="1"></div>
+            <div class="relative min-h-full flex items-center justify-center p-4 sm:p-6">
+                <div class="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden">
+                    <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70">
+                        <div>
+                            <h4 class="text-base font-semibold text-slate-800 dark:text-slate-50">AI Reply Idea</h4>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Generate a quick suggested response for this post.</p>
+                        </div>
+                        <button data-close="1"
+                                type="button"
+                                class="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold shadow-sm cursor-pointer
+                                       bg-slate-900 dark:bg-slate-700 text-white border border-slate-900 dark:border-slate-600
+                                       hover:bg-slate-800 dark:hover:bg-slate-600 transition">
+                            Close
+                        </button>
+                    </div>
+
+                    <div class="px-5 py-5 max-h-[75vh] overflow-y-auto">
+                        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-3 mb-4">
+                            <p id="replyAiContext" class="text-xs leading-5 text-slate-500 dark:text-slate-400 break-words"></p>
+                        </div>
+
+                        <textarea id="replyAiText"
+                                  rows="6"
+                                  class="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 resize-none"></textarea>
+
+                        <div class="flex flex-wrap gap-2 mt-4 justify-end">
+                            <a id="replyAiViewPost"
+                               href="#"
+                               target="_blank"
+                               class="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold shadow-sm
+                                      border border-slate-200 dark:border-slate-700
+                                      bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-100
+                                      hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                                View Post on LinkedIn
+                            </a>
+
+                            <button id="replyAiRegenerate"
+                                    type="button"
+                                    class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shadow-sm cursor-pointer
+                                           border border-indigo-200 dark:border-indigo-700
+                                           bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-200
+                                           hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition">
+                                Regenerate
+                            </button>
+
+                            <button id="replyAiCopy"
+                                    type="button"
+                                    class="inline-flex items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold shadow-sm cursor-pointer
+                                           bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-600 transition">
+                                Copy
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>`;
         document.body.appendChild(modal);
@@ -442,6 +515,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const copyEl = document.getElementById('replyAiCopy');
     let currentContext = '';
 
+    function openModal() {
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
     async function generateModalReply(isRegen = false) {
         if (isRegen) setButtonLoading(regenEl, true);
 
@@ -453,27 +536,63 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    modal.querySelectorAll('[data-close="1"]').forEach(el => el.addEventListener('click', () => modal.classList.add('hidden')));
-    regenEl.addEventListener('click', async () => { await generateModalReply(true); });
-    copyEl.addEventListener('click', async () => { await navigator.clipboard.writeText(textEl.value || ''); });
+    modal.querySelectorAll('[data-close="1"]').forEach((el) => {
+        el.addEventListener('click', closeModal);
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+
+    regenEl.addEventListener('click', async () => {
+        try {
+            await generateModalReply(true);
+        } catch (e) {
+            alert('Could not regenerate AI reply idea now. Please try again.');
+        }
+    });
+
+    copyEl.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(textEl.value || '');
+            copyEl.textContent = 'Copied';
+            setTimeout(() => {
+                copyEl.textContent = 'Copy';
+            }, 1200);
+        } catch (e) {
+            alert('Could not copy text. Please copy it manually.');
+        }
+    });
 
     buttons.forEach((btn) => {
         btn.addEventListener('click', async function () {
-            const original = this.textContent;
-            this.textContent = 'Generating...';
+            const originalHtml = this.innerHTML;
             this.disabled = true;
+            this.classList.add('opacity-70', 'pointer-events-none');
+            this.innerHTML = `${spinnerMarkup}<span>Generating...</span>`;
 
             try {
                 currentContext = this.getAttribute('data-context') || '';
-                viewPostEl.href = this.getAttribute('data-post-url') || '#';
+                const postUrl = this.getAttribute('data-post-url') || '#';
+
+                viewPostEl.href = postUrl;
+                if (postUrl && postUrl !== '#') {
+                    viewPostEl.classList.remove('hidden');
+                } else {
+                    viewPostEl.classList.add('hidden');
+                }
+
                 contextEl.textContent = currentContext;
                 await generateModalReply();
-                modal.classList.remove('hidden');
+                openModal();
             } catch (e) {
                 alert('Could not generate AI reply idea now. Please try again.');
             } finally {
-                this.textContent = original;
+                this.innerHTML = originalHtml;
                 this.disabled = false;
+                this.classList.remove('opacity-70', 'pointer-events-none');
             }
         });
     });
