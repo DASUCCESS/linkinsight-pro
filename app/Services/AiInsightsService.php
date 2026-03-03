@@ -227,7 +227,7 @@ class AiInsightsService
             'connection_message' => 'Connection Messages',
             'improve_post' => 'Improved Post Draft',
             'article_post' => 'LinkedIn Article Draft',
-            default => 'AI Assistant Output',
+            default => 'AI Studio Output',
         };
     }
 

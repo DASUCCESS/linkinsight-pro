@@ -111,7 +111,7 @@
                 <x-admin.sidebar-item
                     :href="route('ai.assistant')"
                     icon="bell"
-                    label="AI Assistant"
+                    label="AI Studio"
                     :active="request()->routeIs('ai.assistant')" />
 
                 <x-admin.sidebar-item
@@ -231,7 +231,7 @@
                     <x-admin.sidebar-item
                         :href="route('ai.assistant')"
                         icon="bell"
-                        label="AI Assistant"
+                        label="AI Studio"
                         :active="request()->routeIs('ai.assistant')" />
 
                     <x-admin.sidebar-item

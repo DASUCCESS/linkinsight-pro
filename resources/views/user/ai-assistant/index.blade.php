@@ -1,6 +1,6 @@
 @extends('user.layout')
 
-@section('page_title', 'AI Assistant')
+@section('page_title', 'AI Studio')
 @section('page_subtitle', 'Create content, brainstorm ideas, and generate polished LinkedIn-ready drafts.')
 
 @section('content')
