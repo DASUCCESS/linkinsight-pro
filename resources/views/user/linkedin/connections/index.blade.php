@@ -4,6 +4,11 @@
 @section('page_subtitle', 'Directory of your LinkedIn connections synced via extension.')
 
 @section('content')
+    @php
+        // Safely get connections from $data, or null if not present
+        $connections = $data['connections'] ?? null;
+    @endphp
+
     <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 overflow-hidden">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">
@@ -36,84 +41,88 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-                    @forelse($data['connections'] as $c)
-                        @php
-                            $rawName = trim((string) ($c->full_name ?? ''));
-                            $rawPid  = trim((string) ($c->public_identifier ?? ''));
+                    @if($connections && count($connections))
+                        @foreach($connections as $c)
+                            @php
+                                $rawName = trim((string) ($c->full_name ?? ''));
+                                $rawPid  = trim((string) ($c->public_identifier ?? ''));
 
-                            $name = ($rawName !== '' && strtolower($rawName) !== 'unknown')
-                                ? $rawName
-                                : (($rawPid !== '' && strtolower($rawPid) !== 'unknown') ? $rawPid : 'Connection');
+                                $name = ($rawName !== '' && strtolower($rawName) !== 'unknown')
+                                    ? $rawName
+                                    : (($rawPid !== '' && strtolower($rawPid) !== 'unknown') ? $rawPid : 'Connection');
 
-                            $img = !empty($c->profile_image_url)
-                                ? $c->profile_image_url
-                                : ('https://ui-avatars.com/api/?name=' . urlencode($name));
-                        @endphp
+                                $img = !empty($c->profile_image_url)
+                                    ? $c->profile_image_url
+                                    : ('https://ui-avatars.com/api/?name=' . urlencode($name));
+                            @endphp
 
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition align-top">
-                            <td class="py-3 pr-3">
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <img src="{{ $img }}"
-                                         class="h-9 w-9 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"
-                                         alt="{{ $name }}">
-                                    <span class="font-semibold text-slate-800 dark:text-slate-100 break-words">
-                                        {{ $name }}
-                                    </span>
-                                </div>
-                            </td>
-
-                            <td class="py-3 px-3 text-slate-500 dark:text-slate-400 max-w-md">
-                                <div class="truncate">
-                                    {{ $c->public_identifier ?: 'N/A' }}
-                                </div>
-                            </td>
-
-                            <td class="py-3 pl-3 text-right">
-                                <div class="inline-flex flex-wrap items-center justify-end gap-2 min-w-[220px]">
-                                    <button type="button"
-                                            class="ai-compose-msg-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold shadow-sm
-                                                   border border-indigo-200 dark:border-indigo-700
-                                                   bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-200
-                                                   cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/30
-                                                   hover:scale-[var(--hover-scale)] transition"
-                                            data-name="{{ e($name) }}"
-                                            data-profile-url="{{ e($c->profile_url) }}"
-                                            title="Compose intro message with AI">
-                                        <span>✨</span>
-                                        <span>Compose Message</span>
-                                    </button>
-
-                                    @if(!empty($c->profile_url))
-                                        <a href="{{ $c->profile_url }}"
-                                           target="_blank"
-                                           class="inline-flex items-center px-3 py-1.5 rounded-xl text-[11px] font-semibold shadow-sm
-                                                  border border-slate-200 dark:border-slate-700
-                                                  bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-100
-                                                  cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700
-                                                  hover:scale-[var(--hover-scale)] transition">
-                                            View Profile
-                                        </a>
-                                    @else
-                                        <span class="text-[11px] text-slate-400 dark:text-slate-500">
-                                            No profile link
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition align-top">
+                                <td class="py-3 pr-3">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <img src="{{ $img }}"
+                                             class="h-9 w-9 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                                             alt="{{ $name }}">
+                                        <span class="font-semibold text-slate-800 dark:text-slate-100 break-words">
+                                            {{ $name }}
                                         </span>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
+                                    </div>
+                                </td>
+
+                                <td class="py-3 px-3 text-slate-500 dark:text-slate-400 max-w-md">
+                                    <div class="truncate">
+                                        {{ $c->public_identifier ?: 'N/A' }}
+                                    </div>
+                                </td>
+
+                                <td class="py-3 pl-3 text-right">
+                                    <div class="inline-flex flex-wrap items-center justify-end gap-2 min-w-[220px]">
+                                        <button type="button"
+                                                class="ai-compose-msg-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold shadow-sm
+                                                       border border-indigo-200 dark:border-indigo-700
+                                                       bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-200
+                                                       cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/30
+                                                       hover:scale-[var(--hover-scale)] transition"
+                                                data-name="{{ e($name) }}"
+                                                data-profile-url="{{ e($c->profile_url) }}"
+                                                title="Compose intro message with AI">
+                                            <span>✨</span>
+                                            <span>Compose Message</span>
+                                        </button>
+
+                                        @if(!empty($c->profile_url))
+                                            <a href="{{ $c->profile_url }}"
+                                               target="_blank"
+                                               class="inline-flex items-center px-3 py-1.5 rounded-xl text-[11px] font-semibold shadow-sm
+                                                      border border-slate-200 dark:border-slate-700
+                                                      bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-100
+                                                      cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700
+                                                      hover:scale-[var(--hover-scale)] transition">
+                                                View Profile
+                                            </a>
+                                        @else
+                                            <span class="text-[11px] text-slate-400 dark:text-slate-500">
+                                                No profile link
+                                            </span>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    @else
                         <tr>
                             <td colspan="3" class="py-10 text-center text-slate-400 dark:text-slate-500">
                                 No connections found. Sync with extension to populate.
                             </td>
                         </tr>
-                    @endforelse
+                    @endif
                 </tbody>
             </table>
         </div>
 
         <div class="mt-4 overflow-x-auto">
-            {{ $data['connections']->links() }}
+            @if($connections instanceof \Illuminate\Contracts\Pagination\Paginator || $connections instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator)
+                {{ $connections->links() }}
+            @endif
         </div>
     </div>
 @endsection
