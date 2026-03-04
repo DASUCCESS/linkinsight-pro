@@ -24,6 +24,12 @@
 
     $initialsSource = $displayName ?: 'LI';
     $initials = strtoupper(mb_substr($initialsSource, 0, 2));
+
+    // Normalize latest metrics to always be an array
+    $latestMetrics = [];
+    if (is_array($latest) && isset($latest['metrics']) && is_array($latest['metrics'])) {
+        $latestMetrics = $latest['metrics'];
+    }
 @endphp
 
 @if($status === 'empty')
@@ -68,23 +74,31 @@
         <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-50">Latest metrics</h3>
             <div class="text-[11px] text-slate-500 dark:text-slate-400">
-                {{ $latest['metric_date'] ?? 'n/a' }}
+                {{ is_array($latest) ? ($latest['metric_date'] ?? 'n/a') : 'n/a' }}
             </div>
         </div>
 
-        @if(!$latest || empty($latest['metrics']))
+        @if(empty($latestMetrics))
             <p class="text-sm text-slate-500 dark:text-slate-400">No creator metrics synced yet.</p>
         @else
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                @foreach(array_slice($latest['metrics'], 0, 12) as $m)
+                @foreach(array_slice($latestMetrics, 0, 12) as $m)
                     <div class="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 shadow">
                         <div class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
                             {{ $m['label'] ?? 'Metric' }}
                         </div>
                         <div class="text-xl font-semibold text-slate-900 dark:text-slate-50">
-                            @php $v = $m['value'] ?? 0; @endphp
+                            @php
+                                $v = $m['value'] ?? 0;
+                            @endphp
+
                             @if(is_numeric($v))
                                 {{ number_format((float) $v, 0) }}
+                            @elseif(is_array($v))
+                                {{-- For array values, show a compact JSON or count to avoid "array to string" issues --}}
+                                {{ \Illuminate\Support\Str::limit(json_encode($v), 40) }}
+                            @elseif(is_object($v))
+                                {{ \Illuminate\Support\Str::limit(json_encode($v), 40) }}
                             @else
                                 {{ \Illuminate\Support\Str::limit((string) $v, 40) }}
                             @endif
@@ -112,10 +126,13 @@
                     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                     @foreach($history as $row)
                         @php
-                            $arr = is_array($row->metrics) ? array_keys($row->metrics) : [];
+                            $metricsArray = is_array($row->metrics) ? $row->metrics : (array) $row->metrics;
+                            $arr = array_keys($metricsArray);
                         @endphp
                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/70 transition">
-                            <td class="px-3 py-2 text-slate-800 dark:text-slate-50">{{ optional($row->metric_date)->toDateString() }}</td>
+                            <td class="px-3 py-2 text-slate-800 dark:text-slate-50">
+                                {{ optional($row->metric_date)->toDateString() }}
+                            </td>
                             <td class="px-3 py-2 text-slate-600 dark:text-slate-300">
                                 {{ collect($arr)->take(10)->implode(', ') ?: 'n/a' }}
                             </td>
