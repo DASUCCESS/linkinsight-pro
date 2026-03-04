@@ -9,9 +9,6 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8 text-sm">
             <div class="space-y-3">
                 <div class="inline-flex items-center gap-2">
-                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 text-white text-xs font-bold shadow">
-                        LI
-                    </span>
                     <span class="font-semibold text-slate-900 text-sm">{{ $siteName }}</span>
                 </div>
                 <p class="text-xs text-slate-500 leading-relaxed">
